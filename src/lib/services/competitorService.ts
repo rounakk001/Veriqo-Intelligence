@@ -1,12 +1,13 @@
 import type { CompetitorComparison } from "@/types/agent";
 import { fetchFinancialMetrics } from "./financialService";
 import { fetchCompanyProfile } from "./financialService";
+import { API } from "@/lib/config/api";
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY!;
 
 export async function fetchPeers(symbol: string): Promise<string[]> {
     const response = await fetch(
-        `https://finnhub.io/api/v1/stock/peers?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
+        `${API.FINNHUB_BASE_URL}/stock/peers?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
         {
             next: {
                 revalidate: 3600,

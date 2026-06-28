@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SCORING_WEIGHTS } from "@/lib/config/scoring";
 import {
   Cell,
   Pie,
@@ -71,11 +72,11 @@ export function ScoreCard({ score, breakdown }: ScoreCardProps) {
   ];
 
   const defaultBreakdown = breakdown ?? {
-    financialHealth: Math.round(score * 0.35),
-    profitability: Math.round(score * 0.2),
-    growth: Math.round(score * 0.15),
-    newsSentiment: Math.round(score * 0.15),
-    risk: Math.round(score * 0.15),
+    financialHealth: Math.round(score * (SCORING_WEIGHTS.FINANCIAL_HEALTH / 100)),
+    profitability: Math.round(score * (SCORING_WEIGHTS.PROFITABILITY / 100)),
+    growth: Math.round(score * (SCORING_WEIGHTS.GROWTH / 100)),
+    newsSentiment: Math.round(score * (SCORING_WEIGHTS.NEWS_SENTIMENT / 100)),
+    risk: Math.round(score * (SCORING_WEIGHTS.RISK / 100)),
   };
 
   return (
@@ -134,33 +135,33 @@ export function ScoreCard({ score, breakdown }: ScoreCardProps) {
             </p>
 
             <BreakdownBar
-              label="Financial Health (35%)"
+              label={`Financial Health (${SCORING_WEIGHTS.FINANCIAL_HEALTH}%)`}
               value={defaultBreakdown.financialHealth}
-              max={35}
+              max={SCORING_WEIGHTS.FINANCIAL_HEALTH}
             />
 
             <BreakdownBar
-              label="Profitability (20%)"
+              label={`Profitability (${SCORING_WEIGHTS.PROFITABILITY}%)`}
               value={defaultBreakdown.profitability}
-              max={20}
+              max={SCORING_WEIGHTS.PROFITABILITY}
             />
 
             <BreakdownBar
-              label="Growth (15%)"
+              label={`Growth (${SCORING_WEIGHTS.GROWTH}%)`}
               value={defaultBreakdown.growth}
-              max={15}
+              max={SCORING_WEIGHTS.GROWTH}
             />
 
             <BreakdownBar
-              label="News Sentiment (15%)"
+              label={`News Sentiment (${SCORING_WEIGHTS.NEWS_SENTIMENT}%)`}
               value={defaultBreakdown.newsSentiment}
-              max={15}
+              max={SCORING_WEIGHTS.NEWS_SENTIMENT}
             />
 
             <BreakdownBar
-              label="Risk (15%)"
+              label={`Risk (${SCORING_WEIGHTS.RISK}%)`}
               value={defaultBreakdown.risk}
-              max={15}
+              max={SCORING_WEIGHTS.RISK}
             />
           </div>
         </div>

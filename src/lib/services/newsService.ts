@@ -1,4 +1,5 @@
 import type { NewsArticle, NewsSummary } from "@/types/agent";
+import { API } from "@/lib/config/api";
 
 const POSITIVE_WORDS = [
   "growth",
@@ -124,7 +125,7 @@ export async function fetchCompanyNews(
 ): Promise<NewsSummary> {
   const apiKey = getApiKey();
   const query = encodeURIComponent(`"${companyName}" OR ${symbol}`);
-  const url = `https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&language=en&pageSize=15&apiKey=${apiKey}`;
+  const url = `${API.NEWS_BASE_URL}/everything?q=${query}&sortBy=publishedAt&language=en&pageSize=15&apiKey=${apiKey}`;
 
   const response = await fetch(url, { next: { revalidate: 1800 } });
 

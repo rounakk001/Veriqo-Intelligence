@@ -117,10 +117,76 @@ function MetricChip({ label, value, positive }: { label: string; value: string; 
     );
 }
 
-function formatTime(value: string) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
-    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+function TimeAgo({ timestamp }: { timestamp: string }) {
+    const [text, setText] = useState("");
+
+    useEffect(() => {
+        const update = () => {
+            const date = new Date(timestamp);
+            if (Number.isNaN(date.getTime())) {
+                setText("—");
+                return;
+            }
+            const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+            if (diff < 60) setText(`Updated ${Math.max(0, diff)} seconds ago`);
+            else if (diff < 3600) setText(`Updated ${Math.floor(diff / 60)} minutes ago`);
+            else setText(`Last synced ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+        };
+        update();
+        const interval = setInterval(update, 10000);
+        return () => clearInterval(interval);
+    }, [timestamp]);
+
+    return <span>{text}</span>;
+}
+
+function getMomentumLabel(change: number) {
+    if (change >= 1.5) return "Strong Bullish";
+    if (change >= 0.2) return "Bullish Momentum";
+    if (change > -0.2 && change < 0.2) return "Sideways Trend";
+    if (change <= -1.5) return "Strong Bearish";
+    return "Bearish Momentum";
+}
+
+function getMarketStatus(symbol: string, defaultStatus: string) {
+    if (defaultStatus && defaultStatus.toUpperCase() !== "CLOSED" && defaultStatus.toUpperCase() !== "UNKNOWN") {
+        return defaultStatus.toUpperCase();
+    }
+    
+    const now = new Date();
+    const utcHour = now.getUTCHours();
+    const utcDay = now.getUTCDay();
+    
+    if (utcDay === 0 || utcDay === 6) return "CLOSED";
+    
+    const isUS = ["^GSPC", "^IXIC", "^DJI", "^RUT"].includes(symbol);
+    if (isUS) {
+        if (utcHour >= 13 && utcHour < 14) return "PRE-MARKET";
+        if (utcHour >= 14 && utcHour < 20) return "OPEN";
+        if (utcHour >= 20 && utcHour < 22) return "AFTER HOURS";
+        return "CLOSED";
+    }
+    
+    const isAsia = ["^N225", "^HSI"].includes(symbol);
+    if (isAsia) {
+        if (utcHour >= 0 && utcHour < 6) return "OPEN";
+        return "CLOSED";
+    }
+    
+    const isEuro = ["^FTSE", "^GDAXI"].includes(symbol);
+    if (isEuro) {
+        if (utcHour >= 7 && utcHour < 15) return "OPEN";
+        return "CLOSED";
+    }
+
+    const isIndia = symbol.includes("NSE") || symbol.includes("BSE") || ["^NSEI", "^NSEBANK", "^BSESN", "^INDIAVIX"].includes(symbol);
+    if (isIndia) {
+        if (utcHour === 3 && now.getUTCMinutes() >= 45) return "PRE-MARKET";
+        if (utcHour >= 4 && utcHour < 10) return "OPEN";
+        return "CLOSED";
+    }
+    
+    return "CLOSED";
 }
 
 function TrendArrow({ value }: { value: number }) {
@@ -420,7 +486,7 @@ export function MarketDashboard() {
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
-                        Last updated {formatTime(data.lastUpdated)}
+                        <TimeAgo timestamp={data.lastUpdated} />
                     </div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -431,7 +497,7 @@ export function MarketDashboard() {
                                     <div>
                                         <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">{market.name}</p>
                                         <p className="mt-1 flex items-center gap-2 text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-                                            {market.value}
+                                            {market.value.replace('$', '')}
                                         </p>
                                     </div>
                                     <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${market.changeValue >= 0 ? "bg-emerald-100/80 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-red-100/80 text-red-700 dark:bg-red-950/40 dark:text-red-400"}`}>
@@ -443,9 +509,9 @@ export function MarketDashboard() {
                                     <MiniAreaChart data={market.sparkline} positive={market.changeValue >= 0} />
                                 </div>
                                 <div className="mt-3 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                                    <span className="uppercase tracking-wider">{market.status}</span>
+                                    <span className="uppercase tracking-wider">{getMarketStatus(market.symbol, market.status)}</span>
                                     <span className={`font-semibold ${market.changeValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                                        {market.changeValue >= 0 ? "Momentum Up" : "Momentum Down"}
+                                        {getMomentumLabel(market.changeValue)}
                                     </span>
                                 </div>
                             </CardContent>
@@ -480,7 +546,7 @@ export function MarketDashboard() {
                                     <MiniBarChart data={item.sparkline} positive={item.changeValue >= 0} />
                                 </div>
                                 <div className="mt-3 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                                    <span className="uppercase tracking-wider">{item.changeValue >= 0 ? "Bullish" : "Cautious"}</span>
+                                    <span className="uppercase tracking-wider">{getMarketStatus(item.symbol, item.status)}</span>
                                     <span className="font-semibold text-zinc-700 dark:text-zinc-300">Weekly trend</span>
                                 </div>
                             </div>
@@ -884,7 +950,7 @@ export function MarketDashboard() {
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                         </span>
-                        System nominal • Last updated {formatTime(data.lastUpdated)}
+                        System nominal • <TimeAgo timestamp={data.lastUpdated} />
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

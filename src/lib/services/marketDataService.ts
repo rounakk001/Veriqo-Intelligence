@@ -1,5 +1,7 @@
 import { unstable_cache } from "next/cache";
 import YahooFinance from "yahoo-finance2";
+import { API } from "@/lib/config/api";
+
 
 const yahooFinance = new YahooFinance({
     suppressNotices: ["yahooSurvey"],
@@ -304,7 +306,7 @@ async function fetchYahooSnapshot(symbol: string, providerStats: Record<string, 
 
 async function fetchTwelveDataQuote(symbol: string, providerStats: Record<string, ProviderHealthStats>) {
     const apiKey = process.env.TWELVE_DATA_API_KEY;
-    const endpoint = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1day&outputsize=12&apikey=${apiKey}`;
+    const endpoint = `${API.TWELVE_BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=1day&outputsize=12&apikey=${apiKey}`;
     const startedAt = Date.now();
 
     if (!apiKey) {
@@ -377,7 +379,7 @@ async function fetchFredSeries(seriesId: string) {
 
     try {
         const url =
-            `https://api.stlouisfed.org/fred/series/observations` +
+            `${API.FRED_BASE_URL}/series/observations` +
             `?series_id=${seriesId}` +
             `&api_key=${apiKey}` +
             `&file_type=json` +
@@ -401,7 +403,7 @@ async function fetchFredSeries(seriesId: string) {
 }
 
 async function fetchAlternativeFearGreed(providerStats: Record<string, ProviderHealthStats>) {
-        const endpoint = "https://api.alternative.me/fng/?limit=1&format=json";
+        const endpoint = `${API.ALTERNATIVE_BASE_URL}/fng/?limit=1&format=json`;
         const startedAt = Date.now();
 
         try {
@@ -443,7 +445,7 @@ async function fetchFinnhubEvents(providerStats: Record<string, ProviderHealthSt
     const today = new Date();
     const from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7).toISOString().slice(0, 10);
     const to = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14).toISOString().slice(0, 10);
-    const endpoint = `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${apiKey}`;
+    const endpoint = `${API.FINNHUB_BASE_URL}/calendar/earnings?from=${from}&to=${to}&token=${apiKey}`;
     const startedAt = Date.now();
 
     if (!apiKey) {
@@ -476,7 +478,7 @@ async function fetchFinnhubEvents(providerStats: Record<string, ProviderHealthSt
 }
 
 async function fetchCoingeckoCrypto(providerStats: Record<string, ProviderHealthStats>) {
-    const endpoint = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,binancecoin,ripple,dogecoin&price_change_percentage=24h&sparkline=true";
+    const endpoint = `${API.COINGECKO_BASE_URL}/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana,binancecoin,ripple,dogecoin&price_change_percentage=24h&sparkline=true`;
     const startedAt = Date.now();
 
     try {

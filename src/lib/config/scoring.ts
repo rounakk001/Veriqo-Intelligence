@@ -1,0 +1,7 @@
+export const SCORING_WEIGHTS = {
+    FINANCIAL_HEALTH: 35,
+    PROFITABILITY: 20,
+    GROWTH: 15,
+    NEWS_SENTIMENT: 15,
+    RISK: 15,
+};
