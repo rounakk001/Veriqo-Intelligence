@@ -1,48 +1,174 @@
 "use client";
 
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils/utils";
 import { LOADING_STEPS, type LoadingStepId } from "@/types/agent";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useMemo } from "react";
 
 interface LoadingStateProps {
   currentStep: LoadingStepId | null;
   completedSteps: LoadingStepId[];
+  companyName?: string;
 }
 
-export function LoadingState({ currentStep, completedSteps }: LoadingStateProps) {
+const LIVE_STATUSES = [
+  "Analyzing quarterly financial statements...",
+  "Comparing valuation multiples...",
+  "Calculating profitability metrics...",
+  "Scanning recent market news...",
+  "Evaluating macroeconomic risks...",
+  "Comparing against industry peers...",
+  "Estimating long-term growth...",
+  "Computing intrinsic investment score...",
+  "Generating executive summary...",
+  "Preparing final recommendation...",
+];
+
+export function LoadingState({ currentStep, completedSteps, companyName }: LoadingStateProps) {
+  const [statusIndex, setStatusIndex] = useState(0);
+  const [factIndex, setFactIndex] = useState(0);
+
+  const FUN_FACTS = useMemo(() => {
+    const target = companyName?.toUpperCase() || "this company";
+    return [
+      `Companies with strong free cash flow like ${target} tend to outperform over long periods.`,
+      `Diversification reduces unsystematic risk when adding ${target} to a portfolio.`,
+      `News sentiment often impacts ${target}'s short-term volatility.`,
+      `Debt quality matters more than debt size when evaluating ${target}.`,
+      `Revenue growth without profitability may be unsustainable in ${target}'s sector.`,
+    ];
+  }, [companyName]);
+
+  // Rotate statuses every 2.5s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStatusIndex((prev) => (prev + 1) % LIVE_STATUSES.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Rotate facts every 5s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFactIndex((prev) => (prev + 1) % FUN_FACTS.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [FUN_FACTS.length]);
+
+  const isAlmostDone = completedSteps.length >= LOADING_STEPS.length - 2;
+
   return (
-    <div className="mx-auto w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <h3 className="mb-4 text-center text-sm font-medium text-zinc-500">
-        Running AI Investment Analysis
-      </h3>
-      <ul className="space-y-3">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.4 }}
+      className="mx-auto w-full max-w-lg rounded-2xl border border-zinc-200/20 bg-zinc-950/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800"
+    >
+      {/* Header */}
+      <div className="mb-8 flex flex-col items-center text-center">
+        <motion.div 
+          animate={{ scale: [1, 1.05, 1], opacity: [0.8, 1, 0.8] }}
+          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-950/40 ring-1 ring-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+        >
+          <BrainCircuit className="h-7 w-7 text-emerald-400" />
+        </motion.div>
+        <h3 className="text-xl font-bold tracking-tight text-zinc-100">
+          AI Investment Analysis in Progress
+        </h3>
+        <p className="mt-2 text-sm text-zinc-400">
+          Our multi-agent system is researching {companyName ? ` ${companyName.toUpperCase()}` : "the company"} using financial data, news, risk models and AI reasoning.
+        </p>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mb-8 h-1.5 w-full overflow-hidden rounded-full bg-zinc-900 shadow-inner">
+        <motion.div 
+          className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+          initial={{ width: "0%" }}
+          animate={{ width: `${Math.max(5, (completedSteps.length / LOADING_STEPS.length) * 100)}%` }}
+          transition={{ duration: 0.5 }}
+        />
+      </div>
+
+      {/* Timeline */}
+      <ul className="mb-8 space-y-4 px-2">
         {LOADING_STEPS.map((step) => {
           const isComplete = completedSteps.includes(step.id);
           const isCurrent = currentStep === step.id;
 
           return (
-            <li
+            <motion.li
               key={step.id}
-              className={cn(
-                "flex items-center gap-3 text-sm transition-colors",
-                isComplete && "text-emerald-600 dark:text-emerald-400",
-                isCurrent && !isComplete && "text-zinc-900 dark:text-zinc-100",
-                !isComplete && !isCurrent && "text-zinc-400"
-              )}
+              initial={false}
+              animate={{ opacity: isComplete || isCurrent ? 1 : 0.4 }}
+              className="flex items-center gap-4 text-sm"
             >
-              {isComplete ? (
-                <Check className="h-4 w-4 shrink-0" />
-              ) : isCurrent ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-              ) : (
-                <span className="h-4 w-4 shrink-0 rounded-full border border-zinc-300 dark:border-zinc-600" />
-              )}
-              {step.label}
-            </li>
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center">
+                {isComplete ? (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50"
+                  >
+                    <Check className="h-3 w-3 font-bold" />
+                  </motion.div>
+                ) : isCurrent ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-emerald-400" />
+                ) : (
+                  <div className="h-2 w-2 rounded-full bg-zinc-800 ring-1 ring-zinc-700" />
+                )}
+              </div>
+              <span className={cn(
+                "transition-colors duration-300",
+                isComplete ? "text-zinc-300" : isCurrent ? "text-emerald-400 font-medium tracking-wide" : "text-zinc-600"
+              )}>
+                {step.label}
+              </span>
+            </motion.li>
           );
         })}
       </ul>
-    </div>
+
+      {/* Live Status */}
+      <div className="mb-6 flex min-h-[3rem] items-center justify-center overflow-hidden border-y border-zinc-800/50 py-4">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={statusIndex}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.3 }}
+            className="text-center text-sm font-medium italic text-zinc-400"
+          >
+            {LIVE_STATUSES[statusIndex]}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Fun Facts & ETA */}
+      <div className="flex flex-col items-center justify-center text-center">
+        <div className="mb-3 min-h-[3rem] w-full px-2">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={factIndex}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="text-xs leading-relaxed text-zinc-500"
+            >
+              <span className="font-semibold text-zinc-400">Insight:</span> {FUN_FACTS[factIndex]}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+        <p className="rounded-full bg-emerald-950/30 px-3 py-1 text-xs font-medium text-emerald-500/80 ring-1 ring-emerald-900/50">
+          {isAlmostDone ? "Almost finished..." : "Estimated completion: 15–30 seconds"}
+        </p>
+      </div>
+    </motion.div>
   );
 }
 

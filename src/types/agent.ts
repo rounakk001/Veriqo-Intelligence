@@ -145,12 +145,12 @@ action: string;
 
 export const LOADING_STEPS = [
   { id: "company", label: "Company Identified" },
-  { id: "financials", label: "Fetching Financial Data" },
-  { id: "news", label: "Fetching News" },
-  { id: "analysis", label: "Running Financial Analysis" },
-  { id: "risks", label: "Evaluating Risks" },
-  { id: "score", label: "Calculating Investment Score" },
-  { id: "decision", label: "Generating Recommendation" },
+  { id: "financials", label: "Financial Statements Retrieved" },
+  { id: "news", label: "News Intelligence" },
+  { id: "analysis", label: "AI Financial Analysis" },
+  { id: "risks", label: "Risk Modeling" },
+  { id: "score", label: "Investment Scoring" },
+  { id: "decision", label: "Executive Summary" },
 ] as const;
 
 export type LoadingStepId = (typeof LOADING_STEPS)[number]["id"];

@@ -307,10 +307,11 @@ export default function HomePage() {
         )}
 
         {isLoading && (
-          <div className="py-12">
+          <div className="py-12 flex justify-center w-full">
             <LoadingState
               currentStep={currentStep}
               completedSteps={completedSteps}
+              companyName={company}
             />
           </div>
         )}
