@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { History, Keyboard, Moon, Search, Sun, TrendingUp, X } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
 import LogoutButton from "@/components/LogoutButton";
@@ -33,7 +34,8 @@ export default function HomePage() {
 
   const [company, setCompany] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -54,12 +56,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem("northstar-theme");
-    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const resolvedTheme = storedTheme === "dark" || (!storedTheme && systemPrefersDark) ? "dark" : "light";
-    setTheme(resolvedTheme);
-    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
-    document.documentElement.classList.toggle("light", resolvedTheme === "light");
+    setMounted(true);
   }, []);
   useEffect(() => {
     const checkAuth = async () => {
@@ -77,11 +74,6 @@ export default function HomePage() {
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    document.documentElement.classList.toggle("light", theme === "light");
-    window.localStorage.setItem("northstar-theme", theme);
-  }, [theme]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -210,10 +202,10 @@ export default function HomePage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               aria-label="Toggle color theme"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {mounted && resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -333,38 +325,27 @@ export default function HomePage() {
             </div>
             
             <div className="grid gap-6 lg:grid-cols-3">
+              {/* Left Column (2/3 width) */}
               <div className="lg:col-span-2 space-y-6">
-                <ExecutiveSummaryCard
-                  executiveSummary={result.executiveSummary}
-                />
+                <ExecutiveSummaryCard executiveSummary={result.executiveSummary} />
                 <OverviewCard profile={result.profile} />
                 <FinancialCard financials={result.financials} />
                 
-                
-                <CompetitorComparisonCard
-                  companyName={result.profile.companyName}
-                  competitors={[
-                    {
-                      symbol: result.profile.symbol,
-                      companyName: result.profile.companyName,
-
-                      revenueGrowth: result.financials.revenueGrowth,
-                      profitabilityScore: result.financials.profitabilityScore,
-                      healthScore: result.financials.healthScore,
-
-                      peRatio: result.financials.peRatio,
-
-                      overallScore: result.score,
-
-                      isCurrentCompany: true,
-                    },
-
-                    ...(result.competitors ?? []),
-                  ]}
+                {/* AI Explanation immediately after Financial Analysis */}
+                <ExplainabilitySection
+                  reasoning={result.reasoning}
+                  score={result.score}
+                  verdict={result.verdict}
                 />
-                <NewsCard news={result.news} />
+                
+                {/* Risk section immediately after AI explanation */}
                 <RiskCard risks={result.risks} />
+                
+                {/* News section as the final section */}
+                <NewsCard news={result.news} />
               </div>
+
+              {/* Right Column (1/3 width) */}
               <div className="space-y-6">
                 <ScoreCard score={result.score} />
                 <VerdictCard
@@ -374,13 +355,26 @@ export default function HomePage() {
                   risks={result.risks}
                   executiveSummary={result.executiveSummary}
                 />
+                
+                {/* Competitor section below the verdict card */}
+                <CompetitorComparisonCard
+                  companyName={result.profile.companyName}
+                  competitors={[
+                    {
+                      symbol: result.profile.symbol,
+                      companyName: result.profile.companyName,
+                      revenueGrowth: result.financials.revenueGrowth,
+                      profitabilityScore: result.financials.profitabilityScore,
+                      healthScore: result.financials.healthScore,
+                      peRatio: result.financials.peRatio,
+                      overallScore: result.score,
+                      isCurrentCompany: true,
+                    },
+                    ...(result.competitors ?? []),
+                  ]}
+                />
               </div>
             </div>
-            <ExplainabilitySection
-              reasoning={result.reasoning}
-              score={result.score}
-              verdict={result.verdict}
-            />
           </div>
           
         )}

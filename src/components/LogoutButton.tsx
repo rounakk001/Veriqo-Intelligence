@@ -21,6 +21,9 @@ export default function LogoutButton({ onLogout }: LogoutButtonProps) {
             router.push("/");
         }
     };
-
-    
+    return (
+        <Button variant="outline" size="sm" onClick={handleLogout}>
+            Sign Out
+        </Button>
+    );
 }

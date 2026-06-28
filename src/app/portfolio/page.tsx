@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { Star, TrendingUp, Trash2 } from "lucide-react";
+import { Star, TrendingUp, Trash2, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,12 @@ export default function PortfolioPage() {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const { theme, resolvedTheme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     async function loadPortfolio() {
         setIsLoading(true);
@@ -134,6 +141,14 @@ export default function PortfolioPage() {
                         <Link href="/" className="text-sm text-zinc-500 hover:text-emerald-600 dark:text-zinc-400">
                             Dashboard
                         </Link>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                            aria-label="Toggle color theme"
+                        >
+                            {mounted && resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        </Button>
                         <Button variant="outline" size="sm" onClick={handleLogout}>
                             Sign out
                         </Button>

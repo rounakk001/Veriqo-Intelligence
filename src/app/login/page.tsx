@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +18,12 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const { theme, resolvedTheme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     async function handleSubmit(event: FormEvent) {
         event.preventDefault();
@@ -52,9 +60,19 @@ export default function LoginPage() {
                         <TrendingUp className="h-4 w-4 text-emerald-600" />
                         Veriqo Intelligence
                     </Link>
-                    <Link href="/" className="text-sm text-zinc-500 hover:text-emerald-600 dark:text-zinc-400">
-                        Back to dashboard
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <Link href="/" className="text-sm text-zinc-500 hover:text-emerald-600 dark:text-zinc-400">
+                            Back to dashboard
+                        </Link>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                            aria-label="Toggle color theme"
+                        >
+                            {mounted && resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        </Button>
+                    </div>
                 </div>
             </header>
 
