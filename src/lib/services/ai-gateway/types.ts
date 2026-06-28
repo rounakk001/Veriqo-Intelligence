@@ -19,5 +19,7 @@ export interface GatewayLogEntry {
   latencyMs?: number;
   retryCount?: number;
   failureReason?: string;
+  providerSwitch?: boolean;
+  finalProvider?: string;
   status: "SUCCESS" | "FAILURE" | "CIRCUIT_BREAKER" | "RETRY" | "INFO";
 }
