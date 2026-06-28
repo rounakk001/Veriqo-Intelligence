@@ -771,17 +771,20 @@ async function buildMarketDashboardData(): Promise<MarketDashboardData> {
         
             const valid = quotes
                 .filter(r=>r.status==="fulfilled")
-                .map(r=>(r as PromiseFulfilledResult<any>).value);
+                .map(r=>(r as PromiseFulfilledResult<{ marketCap?: number; shortName?: string; symbol?: string; }>).value);
         
             if(!valid.length)
-                return "N/A";
+                return { symbol: "N/A", name: "N/A" };
         
             valid.sort(
                 (a,b)=>
                 (b.marketCap??0)-(a.marketCap??0)
             );
         
-            return valid[0].shortName || valid[0].symbol;
+            return {
+                symbol: valid[0].symbol ?? "N/A",
+                name: valid[0].shortName || valid[0].symbol || "N/A"
+            };
         }
 
         

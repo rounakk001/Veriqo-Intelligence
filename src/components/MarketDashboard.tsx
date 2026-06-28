@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useId } from "react";
 import LogoutButton from "@/components/LogoutButton";
 import {
     Area,
@@ -28,7 +28,6 @@ import {
     ShieldCheck,
     Sparkles,
     TrendingUp,
-    TrendingDown,
     Wallet,
     ArrowUpRight,
     ArrowDownRight,
@@ -207,6 +206,7 @@ function getStrengthWidth(strength: string) {
 // ----------------------------------------------------------------------
 
 function MiniAreaChart({ data, positive = true }: { data: number[]; positive?: boolean }) {
+    const reactId = useId().replace(/:/g, "");
     if (!data.length) return <div className="h-14 w-full rounded-lg bg-zinc-100 dark:bg-zinc-900" />;
     
     const chartData = data.filter(Number.isFinite).map((val, i) => ({ value: val, index: i }));
@@ -214,7 +214,7 @@ function MiniAreaChart({ data, positive = true }: { data: number[]; positive?: b
     const max = Math.max(...chartData.map(d => d.value));
     
     const color = positive ? "#10b981" : "#ef4444";
-    const gradientId = `gradient-${positive ? 'pos' : 'neg'}-${Math.random().toString(36).substring(7)}`;
+    const gradientId = `gradient-${positive ? 'pos' : 'neg'}-${reactId}`;
 
     return (
         <div className="h-14 w-full">
@@ -353,6 +353,7 @@ export function MarketDashboard() {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadDashboard();
     }, []);
 

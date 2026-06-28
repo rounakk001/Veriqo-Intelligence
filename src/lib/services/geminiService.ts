@@ -1,5 +1,6 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { AIGateway } from "./ai-gateway/gateway";
 import type {
   CompanyProfile,
   FinancialMetrics,
@@ -11,6 +12,10 @@ import type {
 } from "@/types/agent";
 
 function getModel(): ChatGoogleGenerativeAI {
+  if (process.env.AI_ENABLE_GATEWAY === "true") {
+    return new AIGateway();
+  }
+
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_API_KEY is not configured");

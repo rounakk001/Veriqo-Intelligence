@@ -230,10 +230,10 @@ export async function fetchCompanyProfile(
     modules: ["summaryProfile", "assetProfile", "price"],
   });
 
-  const profile:  any = (summary as QuoteSummaryRaw).summaryProfile ?? {};
-  const assetProfile: any = (summary as QuoteSummaryRaw).assetProfile ?? {};
+  const profile: Record<string, unknown> = (summary as QuoteSummaryRaw).summaryProfile ?? {};
+  const assetProfile: Record<string, unknown> = (summary as QuoteSummaryRaw).assetProfile ?? {};
   
-  const price: any = (summary as QuoteSummaryRaw).price ?? {};
+  const price: Record<string, unknown> = (summary as QuoteSummaryRaw).price ?? {};
 
   const companyName =
     coerceString(price.longName) ||
@@ -265,9 +265,9 @@ export async function fetchCompanyProfile(
     coerceString(profile.website) ||
     coerceString(assetProfile.website) ||
     "";
-  const ceo = findCeo(profile.companyOfficers);
-  const employees = profile.fullTimeEmployees ?? assetProfile.fullTimeEmployees ?? 0;
-  const ipoDate = toDateString(profile.startDate) || "Unknown";
+  const ceo = findCeo(profile.companyOfficers as unknown[] | undefined);
+  const employees = (profile.fullTimeEmployees as number) ?? (assetProfile.fullTimeEmployees as number) ?? 0;
+  const ipoDate = toDateString(profile.startDate as string | undefined) || "Unknown";
   const image = "";
 
   return {

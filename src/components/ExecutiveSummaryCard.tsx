@@ -1,21 +1,7 @@
 "use client";
 
-import {
-    Brain,
-    TrendingUp,
-    AlertTriangle,
-    Lightbulb,
-    Target,
-} from "lucide-react";
-
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-
-import { Badge } from "@/components/ui/badge";
+import { Brain, AlertTriangle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ExecutiveSummary } from "@/types/agent";
 
 interface ExecutiveSummaryCardProps {

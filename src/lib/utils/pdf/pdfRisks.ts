@@ -12,7 +12,6 @@ import {
 
 import {
     ensurePageSpace,
-    addWrappedText,
 } from "./pdfHelpers";
 
 function severityColor(

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { History, Keyboard, Moon, Search, Sun, TrendingUp, X } from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
-import LogoutButton from "@/components/LogoutButton";
+
 import { ExecutiveSummaryCard } from "@/components/ExecutiveSummaryCard";
 import {
   LoadingState,
@@ -34,7 +34,7 @@ export default function HomePage() {
 
   const [company, setCompany] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
@@ -49,6 +49,7 @@ export default function HomePage() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(HISTORY_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored) setHistory(JSON.parse(stored));
     } catch (error) {
       console.error(error);
@@ -56,6 +57,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
   useEffect(() => {
@@ -181,7 +183,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
 
-                <LogoutButton />
+
               </>
             ) : (
               <Link href="/login">

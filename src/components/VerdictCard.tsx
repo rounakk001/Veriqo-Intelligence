@@ -57,18 +57,13 @@ const verdictLabel: Record<Verdict, string> = {
 export function VerdictCard({
   verdict,
   confidence,
-  reasoning,
   risks,
   executiveSummary
 }: VerdictCardProps) {
   const config = verdictConfig[verdict];
   const Icon = config.icon;
 
-  const keyReasons = reasoning.slice(0, 4);
-  const riskSummaries = risks.risks
-    .filter((r) => r.severity !== "low")
-    .slice(0, 3)
-    .map((r) => r.description);
+
 
 
 

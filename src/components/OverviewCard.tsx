@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Globe, Users } from "lucide-react";
+import { Building2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { CompanyProfile } from "@/types/agent";
-import { Z_UNKNOWN } from "zlib";
 
 interface OverviewCardProps {
   profile: CompanyProfile;
@@ -22,11 +21,14 @@ export function OverviewCard({ profile }: OverviewCardProps) {
       <CardHeader>
         <div className="flex items-start gap-4">
           {profile.image ? (
-            <img
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
               src={profile.image}
               alt={profile.companyName}
               className="h-14 w-14 rounded-lg border border-zinc-200 object-contain p-1 dark:border-zinc-700"
             />
+            </>
           ) : (
             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
               <Building2 className="h-7 w-7 text-emerald-600" />

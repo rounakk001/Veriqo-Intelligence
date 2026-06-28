@@ -30,6 +30,7 @@ export function CompetitorComparisonCard({
     const triggerRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 
@@ -86,7 +87,7 @@ export function CompetitorComparisonCard({
                             No comparable competitors found
                         </p>
                         <p className="mt-2 text-sm text-zinc-500">
-                            This company doesn't currently have enough publicly listed peers for a meaningful comparison.
+                            This company doesn&apos;t currently have enough publicly listed peers for a meaningful comparison.
                         </p>
                     </div>
                 </CardContent>
@@ -221,7 +222,8 @@ export function CompetitorComparisonCard({
                 <CardHeader className="pb-4">
                     <CardTitle className="text-lg">Competitor Comparison</CardTitle>
                     <CardDescription>
-                        See how {companyName} compares against its top peers in the industry.
+                        Here&apos;s how {companyName} stacks up against key competitors across critical
+                        financial and market metrics.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

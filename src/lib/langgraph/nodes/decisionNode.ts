@@ -11,7 +11,7 @@ function getVerdict(
 
   const health = state.financials.healthScore;
   const profitability = state.financials.profitabilityScore;
-  const growth = state.financials.growthScore;
+
   const sentiment = state.news.sentimentScore;
   const risk = state.risks.riskScore;
 

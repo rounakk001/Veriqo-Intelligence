@@ -797,11 +797,7 @@ export function drawCompetitors(
 
     y += 16;
 
-    const highestScore = Math.max(
-        ...result.competitors.map(
-            c => c.overallScore
-        )
-    );
+
 
     const rank =
         [...result.competitors]
