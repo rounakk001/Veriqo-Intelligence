@@ -11,7 +11,7 @@ import type {
   Verdict,
 } from "@/types/agent";
 
-function getModel(): ChatGoogleGenerativeAI {
+export function getModel(): ChatGoogleGenerativeAI {
   if (process.env.AI_ENABLE_GATEWAY === "true") {
     return new AIGateway();
   }
@@ -29,12 +29,77 @@ function getModel(): ChatGoogleGenerativeAI {
   });
 }
 
-function extractJson<T>(text: string): T {
+export function extractJson<T>(text: string, fallbackName: string = "Unknown"): T {
+  const shouldLog = process.env.NODE_ENV !== "production";
   const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
   if (!jsonMatch) {
+    if (shouldLog) {
+      console.log(`[DEBUG] JSON Parse Success? NO`);
+      console.log(`[DEBUG] JSON Parsing Failure Exact Error: No JSON match found in response`);
+      console.log(`[DEBUG] Root Cause: JSON parsing failure / invalid schema`);
+      console.log(`[DEBUG] FALLBACK ACTIVATED: ${fallbackName}`);
+    }
     throw new Error("Failed to parse AI response as JSON");
   }
-  return JSON.parse(jsonMatch[0]) as T;
+  
+  try {
+    const parsed = JSON.parse(jsonMatch[0]) as T;
+    if (shouldLog) {
+      console.log(`[DEBUG] JSON Parse Success? YES`);
+      console.log(`[DEBUG] Extracted JSON Result:\n${JSON.stringify(parsed).substring(0, 500)}...`);
+    }
+    return parsed;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    if (shouldLog) {
+      console.log(`[DEBUG] JSON Parse Success? NO`);
+      console.log(`[DEBUG] JSON Parsing Failure Exact Error: ${error.message}`);
+      console.log(`[DEBUG] Root Cause: JSON parsing failure / invalid schema`);
+      console.log(`[DEBUG] FALLBACK ACTIVATED: ${fallbackName}`);
+    }
+    throw error;
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function invokeWithLogging(model: any, messages: any[], fallbackName: string) {
+  const isGateway = model.constructor.name === "AIGateway" || process.env.AI_ENABLE_GATEWAY === "true";
+  const shouldLog = process.env.NODE_ENV !== "production";
+  
+  if (shouldLog) {
+    console.log(`\n=== GEMINI DEBUG TRACE ===`);
+    console.log(`[DEBUG] Model Used: ${model.constructor.name}`);
+    console.log(`[DEBUG] Gateway Enabled (env): ${process.env.AI_ENABLE_GATEWAY}`);
+    console.log(`[DEBUG] Using AIGateway Implementation? ${isGateway ? "YES" : "NO"}`);
+    console.log(`[DEBUG] Preparing to invoke model for: ${fallbackName}`);
+  }
+
+  let response;
+  try {
+    response = await model.invoke(messages);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    if (shouldLog) {
+      console.log(`[DEBUG] INVOKE FAILURE - Exact Error: ${error.message}`);
+      if (error.message?.toLowerCase().includes("timeout")) {
+        console.log(`[DEBUG] Root Cause: timeout`);
+      } else if (error.message?.includes("429")) {
+        console.log(`[DEBUG] Root Cause: gateway retry exhaustion`);
+      } else {
+        console.log(`[DEBUG] Root Cause: invoke failure`);
+      }
+      console.log(`[DEBUG] FALLBACK ACTIVATED: ${fallbackName}`);
+    }
+    throw error;
+  }
+
+  const content = typeof response.content === "string" ? response.content : JSON.stringify(response.content);
+  
+  if (shouldLog) {
+    console.log(`[DEBUG] Raw Gemini Response:\n${content}`);
+  }
+
+  return content;
 }
 
 export async function analyzeRisksWithAI(
@@ -79,24 +144,21 @@ Return ONLY valid JSON in this exact format:
 riskScore: 0 = lowest risk, 100 = highest risk.`;
 
   try {
-    const response = await model.invoke([
-      new SystemMessage("You are a financial risk analyst. Respond with valid JSON only."),
-      new HumanMessage(prompt),
-    ]);
-
-    const content =
-      typeof response.content === "string"
-        ? response.content
-        : JSON.stringify(response.content);
-
-    console.log(content);
+    const content = await invokeWithLogging(
+      model,
+      [
+        new SystemMessage("You are a financial risk analyst. Respond with valid JSON only."),
+        new HumanMessage(prompt),
+      ],
+      "buildFallbackRiskAssessment"
+    );
 
     const parsed = extractJson<{
       risks: RiskItem[];
       overallRiskLevel: "low" | "medium" | "high";
       riskScore: number;
       summary: string;
-    }>(content);
+    }>(content, "buildFallbackRiskAssessment");
 
     return {
       risks: parsed.risks.slice(0, 5),
@@ -232,17 +294,16 @@ Example:
 `;
 
   try {
-    const response = await model.invoke([
-      new SystemMessage("Respond with a valid JSON array of strings only."),
-      new HumanMessage(prompt),
-    ]);
+    const content = await invokeWithLogging(
+      model,
+      [
+        new SystemMessage("Respond with a valid JSON array of strings only."),
+        new HumanMessage(prompt),
+      ],
+      "buildFallbackReasoning"
+    );
 
-    const content =
-      typeof response.content === "string"
-        ? response.content
-        : JSON.stringify(response.content);
-
-    const parsed = extractJson<string[]>(content);
+    const parsed = extractJson<string[]>(content, "buildFallbackReasoning");
     return parsed.slice(0, 8);
   } catch (error) {
     console.error(error);
@@ -421,22 +482,18 @@ Rules:
 `;
 
   try {
-    const response = await model.invoke([
-      new SystemMessage(
-        "You are a CFA equity research analyst. Respond ONLY with valid JSON."
-      ),
-      new HumanMessage(prompt),
-    ]);
+    const content = await invokeWithLogging(
+      model,
+      [
+        new SystemMessage(
+          "You are a CFA equity research analyst. Respond ONLY with valid JSON."
+        ),
+        new HumanMessage(prompt),
+      ],
+      "buildFallbackExecutiveSummary"
+    );
 
-    const content =
-      typeof response.content === "string"
-        ? response.content
-        : JSON.stringify(response.content);
-
-
-
-
-    const parsed = extractJson<ExecutiveSummary>(content);
+    const parsed = extractJson<ExecutiveSummary>(content, "buildFallbackExecutiveSummary");
 
     console.log("AI Executive Summary:", parsed);
 

@@ -23,7 +23,7 @@ export async function fetchPeers(symbol: string): Promise<string[]> {
 
     return peers
         .filter((peer) => peer !== symbol)
-        .slice(0, 3);
+        .slice(0, 10); // Fetch up to 10 peers to ensure we get at least 3 valid ones
 }
 
 
@@ -72,7 +72,7 @@ export async function fetchCompetitors(
         })
     );
 
-    return competitors.filter(
-        (company): company is CompetitorComparison => company !== null
-    );
+    return competitors
+        .filter((company): company is CompetitorComparison => company !== null)
+        .slice(0, 3); // Return only top 3 successful competitors
 }

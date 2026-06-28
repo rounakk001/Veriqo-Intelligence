@@ -197,8 +197,7 @@ function scoreGrowth(revenueGrowth: number | null): number {
 
 export async function searchCompany(query: string): Promise<SearchResult[]> {
   const response = await yahooFinance.search(query, {
-    quotesCount: 10,
-    region: "US",
+    quotesCount: 15,
     lang: "en-US",
   });
 
@@ -496,16 +495,22 @@ export async function resolveCompanySymbol(
   }
 
   const normalized = companyName.trim().toLowerCase();
+  const cleanName = (name: string) => name.toLowerCase().replace(/\b(inc|corp|plc|ltd|co|corporation|company)\b\.?/gi, '').trim();
+  const normalizedClean = cleanName(companyName);
+
   const exactSymbol = results.find(
     (r) => r.symbol.toLowerCase() === normalized
   );
+  if (exactSymbol) return exactSymbol;
+
   const exactName = results.find(
-    (r) => r.name.toLowerCase() === normalized
+    (r) => cleanName(r.name) === normalizedClean
   );
+  if (exactName) return exactName;
+
   const startsWith = results.find((r) =>
-    r.name.toLowerCase().startsWith(normalized)
+    cleanName(r.name).startsWith(normalizedClean)
   );
 
-  const match = exactSymbol || exactName || startsWith || results[0];
-  return { symbol: match.symbol, name: match.name };
+  return startsWith || results[0];
 }

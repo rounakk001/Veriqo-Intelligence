@@ -1,6 +1,5 @@
 import { AIGateway } from "../src/lib/services/ai-gateway/gateway";
 import { GeminiProvider } from "../src/lib/services/ai-gateway/providers/gemini";
-import { CircuitBreaker } from "../src/lib/services/ai-gateway/circuit-breaker";
 
 async function verify() {
   console.log("=== Enterprise AI Gateway Verification ===\n");
@@ -12,6 +11,7 @@ async function verify() {
   console.log("Keys loaded:", keys.map(k => k.key));
   
   // Reset for next test
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (GeminiProvider as any).keys = [];
   delete process.env.GOOGLE_API_KEY;
 
@@ -26,6 +26,7 @@ async function verify() {
 
   // 3. Mock Model Instance to test rotation, retry, and circuit breaker
   let requestCount = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (GeminiProvider as any).getModelInstance = (apiKey: string) => {
     return {
       invoke: async () => {
@@ -34,6 +35,7 @@ async function verify() {
         
         if (apiKey === "key_a" && requestCount === 1) {
           console.log(`  -> [Mock LLM] Simulating 429 Rate Limit for key_a...`);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const err: any = new Error("429 Too Many Requests");
           err.status = 429;
           throw err;
@@ -49,17 +51,20 @@ async function verify() {
   console.log("\n[3] Testing Circuit Breaker & Retry on Failure...");
   console.log("--- Request 1 ---");
   // First call (will use key_a, fail, circuit break, retry with key_b)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const res1 = await gateway.invoke("test 1" as any);
   console.log("Result 1:", res1);
   
   console.log("\n[4] Testing Round-Robin Rotation & Skipping Unhealthy Keys...");
   console.log("--- Request 2 ---");
   // Second call (key_c because key_a is on cooldown and we used key_b)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const res2 = await gateway.invoke("test 2" as any);
   console.log("Result 2:", res2);
 
   console.log("--- Request 3 ---");
   // Third call (key_b because key_a is STILL on cooldown, it loops back to start but skips A)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const res3 = await gateway.invoke("test 3" as any);
   console.log("Result 3:", res3);
   
@@ -74,10 +79,12 @@ async function verify() {
   console.log("--- Request 4 ---");
   // Fourth call (should be key_c, then next is key_a which is now healthy!)
   // Wait, last used was key_b. Next is key_c.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const res4 = await gateway.invoke("test 4" as any);
   console.log("Result 4:", res4);
 
   console.log("--- Request 5 ---");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const res5 = await gateway.invoke("test 5" as any);
   console.log("Result 5:", res5);
 

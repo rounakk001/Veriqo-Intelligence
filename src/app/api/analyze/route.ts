@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+   
+
     const result = await runAnalysis(company);
 
     return NextResponse.json(result);

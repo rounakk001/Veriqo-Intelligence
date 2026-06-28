@@ -75,6 +75,10 @@ export class AIGateway extends ChatGoogleGenerativeAI {
 
         return response as Awaited<ReturnType<ChatGoogleGenerativeAI["invoke"]>>;
       } catch (error: unknown) {
+         console.error("FULL GEMINI ERROR:");
+          console.dir(error, { depth: null });
+
+          
         const latencyMs = Date.now() - startTime;
         const err = error as Record<string, unknown>;
         CircuitBreaker.recordFailure(selectedKey.index, selectedKey, "Gemini", error);

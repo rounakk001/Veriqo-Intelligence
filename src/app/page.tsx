@@ -17,6 +17,7 @@ import { NewsCard } from "@/components/NewsCard";
 import { RiskCard } from "@/components/RiskCard";
 import { ScoreCard } from "@/components/ScoreCard";
 import { VerdictCard } from "@/components/VerdictCard";
+import { CommitteeCard } from "@/components/CommitteeCard";
 import { ExplainabilitySection } from "@/components/ExplainabilitySection";
 import { MarketDashboard } from "@/components/MarketDashboard";
 import { Button } from "@/components/ui/button";
@@ -357,6 +358,9 @@ export default function HomePage() {
                   risks={result.risks}
                   executiveSummary={result.executiveSummary}
                 />
+                
+                {/* AI Investment Committee */}
+                <CommitteeCard result={result} />
                 
                 {/* Competitor section below the verdict card */}
                 <CompetitorComparisonCard
