@@ -2,10 +2,14 @@ import jsPDF from "jspdf";
 import type { AnalysisResult } from "@/types/agent";
 
 import { drawCoverPage } from "./pdfCover";
+import { drawTOC } from "./pdfTOC";
 import { drawSummary } from "./pdfSummary";
+import { drawDashboard } from "./pdfDashboard";
 import { drawFinancials } from "./pdfFinancials";
 import { drawCompetitors } from "./pdfCompetitors";
 import { drawRisk } from "./pdfRisks";
+import { drawNews } from "./pdfNews";
+import { drawConclusion } from "./pdfConclusion";
 import { drawFooter, drawWatermark } from "./pdfTheme";
 
 export function generateReport(
@@ -17,16 +21,22 @@ export function generateReport(
     });
 
     drawCoverPage(doc, result);
-
+    drawTOC(doc);
+    drawSummary(doc, result);
+    drawDashboard(doc, result);
     drawFinancials(doc, result);
-
+    
     if (result.competitors?.length) {
         drawCompetitors(doc, result);
     }
 
     drawRisk(doc, result);
-
-    drawSummary(doc, result);
+    
+    if (result.news) {
+        drawNews(doc, result);
+    }
+    
+    drawConclusion(doc, result);
 
     drawWatermark(doc);
     drawFooter(doc);
@@ -43,5 +53,5 @@ export function downloadInvestmentReport(
         result.profile.companyName
             .replace(/\s+/g, "_");
 
-    doc.save(`${company}_Investment_Report.pdf`);
+    doc.save(`${company}_VERIQO_INTELLIGENCE.pdf`);
 }

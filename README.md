@@ -1,303 +1,241 @@
-# AI Investment Research Agent
+# VERIQO INTELLIGENCE - Investment Research Agent 📈
 
-A production-quality full-stack web application that researches public companies, analyzes financial data and news, calculates an investment score, and produces explainable investment recommendations — powered by LangGraph and Google Gemini.
+A production-inspired, full-stack web application designed to automate public company research. It analyzes financial data and news, assesses risks using an AI agent workflow, and produces a structured, explainable investment recommendation report. 
 
-![Tech Stack](https://img.shields.io/badge/Next.js-16-black) ![LangGraph](https://img.shields.io/badge/LangGraph-AI%20Workflow-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
-
----
-
-## Overview
-
-This is **not a chatbot**. It is an AI agent that performs structured investment research:
-
-1. Validates and identifies the company
-2. Fetches financial metrics from Financial Modeling Prep
-3. Retrieves and analyzes recent news from NewsAPI
-4. Evaluates risks using Google Gemini 2.5 Flash
-5. Calculates a deterministic investment score (0–100)
-6. Generates an **Invest** or **Pass** recommendation with full reasoning
-
-The output is a professional, dashboard-style research report — similar to Perplexity or an institutional research terminal.
+Built as an ambitious effort to create a polished, functional AI product within limited time, this project explores how multi-step reasoning models can be integrated directly into a consumer-grade dashboard.
 
 ---
 
-## Features
+## 1. Project Overview
 
-- **LangGraph Agent Workflow** — Multi-node pipeline with shared typed state
-- **Financial Analysis** — Revenue, net income, cash flow, debt, market cap, P/E ratio
-- **News Sentiment Analysis** — Positive/negative classification, major event detection
-- **AI Risk Assessment** — Competition, debt, market, regulatory, and business risks
-- **Deterministic Scoring** — Weighted composite score with transparent breakdown
-- **Explainable Recommendations** — Verdict, confidence, reasons, and risk summary
-- **Modern Dashboard UI** — Shadcn-style components, Recharts visualizations
-- **Loading Progress** — Step-by-step analysis progress indicator
-- **Research History** — Recent searches stored in localStorage
-- **Dark Mode** — Automatic system preference support
-- **Error Handling** — Graceful failures for invalid companies and API errors
+This is an AI agent that performs structured investment research rather than just acting as a conversational chatbot. When given a company ticker, it systematically:
+- Validates the company profile.
+- Retrieves financial metrics from financial APIs.
+- Analyzes recent news sentiment.
+- Evaluates risks using Google Gemini (with OpenRouter and xAI as fallback providers).
+- Calculates a deterministic investment score based on a weighted formula.
+- Produces a final **Strong Invest**, **Invest**, **Neutral**, or **Pass** recommendation with reasoning.
+
+The output is presented in a clean, dashboard-style interface and can be exported as a professional PDF report.
 
 ---
 
-## Architecture
+## 2. Key Features
 
-```
-User Input (Company Name)
-        ↓
-   POST /api/analyze
-        ↓
-   LangGraph Workflow
-        ↓
-┌───────────────────────────────────────────────────┐
-│  Company Research → Financial Analysis → News     │
-│  → Risk Analysis → Investment Scoring → Decision  │
-└───────────────────────────────────────────────────┘
-        ↓
-   Structured JSON Response
-        ↓
-   Dashboard UI (Cards, Charts, Verdict)
-```
+- **Agentic Workflow**: Powered by LangGraph to execute a multi-node pipeline with shared state and deterministic flow control.
+- **Enterprise-Grade PDF Generation**: Exports the analysis into a polished, multi-page PDF report with vector charts, data tables, and watermarks using `jsPDF`.
+- **Multi-Provider AI Gateway**: Custom circuit-breaker and fallback architecture (Gemini → OpenRouter → xAI) to ensure the AI analysis completes even if a provider goes down or rate limits.
+- **Explainable Scoring**: Calculates an investment score (0–100) using a transparent, weighted formula based on financial health, profitability, growth, news sentiment, and risk.
+- **Market Dashboard & Peer Comparison**: Provides broader market context and compares the searched company against industry peers.
+- **Modern UI/UX**: Responsive dashboard built with React, Tailwind CSS, Shadcn-style components, and Framer Motion for smooth micro-animations.
 
-### Folder Structure
+---
+
+## 3. Screenshots
+
+> *[Placeholder: Add Hero Screenshot of the main dashboard here]*
+
+> *[Placeholder: Add Screenshot of the PDF Report export here]*
+
+---
+
+## 4. Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4, Framer Motion
+- **AI & Agents**: LangChain, LangGraph
+- **LLM Providers**: Google Gemini 2.5 Flash, OpenRouter, xAI (Grok)
+- **Data Providers**: Financial Modeling Prep (FMP), NewsAPI, Yahoo Finance
+- **PDF Generation**: jsPDF, jsPDF-AutoTable
+- **Charts**: Recharts
+
+---
+
+## 5. Architecture
+
+The application follows a stateless, server-side orchestrated architecture. The frontend submits a company query, and the Next.js API route spins up a LangGraph workflow.
+
+> *[Placeholder: Add Architecture Diagram here]*
+
+**High-Level Flow:**
+1. **User Input** → Submits company name on the homepage.
+2. **API Route** → `POST /api/analyze` handles the request.
+3. **LangGraph** → Orchestrates the research pipeline securely on the server.
+4. **AI Gateway** → Routes LLM requests through a custom circuit breaker to handle API failures.
+5. **Client UI** → Receives the structured JSON response and populates the dashboard components.
+
+---
+
+## 6. LangGraph Workflow
+
+The core reasoning engine is a directed graph where each node focuses on a specific research task. If a node fails gracefully, the graph can still attempt to provide a partial analysis.
+
+> *[Placeholder: Add LangGraph Workflow Diagram here]*
+
+**Nodes in Order:**
+1. **Company Research**: Validates the ticker and fetches the company profile.
+2. **Financial Analysis**: Retrieves metrics like revenue, cash flow, debt, and P/E ratios.
+3. **News Analysis**: Fetches recent headlines and uses the LLM to classify sentiment.
+4. **Risk Analysis**: Assesses business, market, and regulatory risks.
+5. **Investment Scoring**: Applies a deterministic formula to calculate the final score.
+6. **Decision**: Determines the final verdict based on the score threshold.
+7. **Executive Summary**: Generates a professional summary and recommendation rationale.
+8. **Competitor Analysis**: Identifies and ranks industry peers.
+
+---
+
+## 7. Project Structure
 
 ```
 src/
-├── app/
-│   ├── page.tsx                 # Homepage & dashboard
-│   └── api/analyze/route.ts     # Analysis API endpoint
-├── components/
-│   ├── SearchBar.tsx
-│   ├── LoadingState.tsx
-│   ├── OverviewCard.tsx
-│   ├── FinancialCard.tsx
-│   ├── NewsCard.tsx
-│   ├── RiskCard.tsx
-│   ├── ScoreCard.tsx
-│   ├── VerdictCard.tsx
-│   ├── ExplainabilitySection.tsx
-│   └── ui/                      # Shadcn-style primitives
-├── lib/
-│   ├── langgraph/
-│   │   ├── graph.ts             # LangGraph workflow definition
-│   │   └── nodes/               # Individual agent nodes
-│   ├── services/
-│   │   ├── financialService.ts  # FMP API integration
-│   │   ├── newsService.ts       # NewsAPI integration
-│   │   └── geminiService.ts     # Google Gemini AI
-│   └── utils.ts
-└── types/
-    └── agent.ts                 # Shared TypeScript types
+├── app/                  # Next.js App Router (Pages & API Routes)
+│   ├── api/              # Server-side endpoints (analyze, market, committee)
+│   └── page.tsx          # Main dashboard UI
+├── components/           # React Components
+│   ├── ui/               # Reusable UI primitives (buttons, inputs)
+│   └── ...               # Domain-specific components (Cards, Modals)
+├── lib/                  # Core Application Logic
+│   ├── langgraph/        # Agent workflow definitions and nodes
+│   ├── services/         # External API integrations
+│   │   ├── ai-gateway/   # Custom multi-provider LLM router & circuit breaker
+│   │   └── ...           # Financial, News, and Auth services
+│   └── utils/            
+│       └── pdf/          # PDF generation modules (Theme, Helpers, Layouts)
+└── types/                # TypeScript interfaces and shared types
 ```
 
 ---
 
-## LangGraph Workflow
+## 8. Setup Instructions
 
-```
-START
-  ↓
-Company Research Node     → Validate company, fetch profile
-  ↓
-Financial Analysis Node   → Revenue, income, cash flow, debt, P/E
-  ↓
-News Analysis Node        → Fetch news, classify sentiment
-  ↓
-Risk Analysis Node        → AI-powered risk assessment (Gemini)
-  ↓
-Investment Scoring Node   → Weighted deterministic score
-  ↓
-Decision Node             → Verdict, confidence, reasoning
-  ↓
-END
-```
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd project
+   ```
 
-### Scoring Weights
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-| Factor            | Weight |
-|-------------------|--------|
-| Financial Health  | 35%    |
-| Profitability     | 20%    |
-| Growth            | 15%    |
-| News Sentiment    | 15%    |
-| Risk (inverted)   | 15%    |
-| **Total**         | **100%** |
+3. **Configure environment variables:**
+   ```bash
+   cp .env.example .env.local
+   ```
+   *Edit `.env.local` to include your specific API keys (see below).*
 
-### Verdict Rules
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
 
-| Score   | Verdict        |
-|---------|----------------|
-| 80–100  | Strong Invest  |
-| 60–79   | Invest         |
-| 40–59   | Neutral        |
-| 0–39    | Pass           |
+5. **Open the app:**
+   Navigate to `http://localhost:3000` in your browser.
 
 ---
 
-## How To Run
+## 9. Environment Variables
 
-### Prerequisites
+Create a `.env.local` file in the root directory. You can use the provided `.env.example` as a template.
 
-- Node.js 18+
-- API keys for Google Gemini, Financial Modeling Prep, and NewsAPI
+```env
+# AI Providers
+GOOGLE_API_KEY=your_gemini_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+XAI_API_KEY=your_xai_api_key_here
 
-### Setup
+# Financial & Data APIs
+FMP_API_KEY=your_financial_modeling_prep_key_here
+NEWS_API_KEY=your_newsapi_key_here
 
-```bash
-# Clone and install
-git clone <repo-url>
-cd project
-npm install
-
-# Configure environment
-cp .env.example .env.local
-# Edit .env.local with your API keys
-
-# Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) and enter a company name (e.g., **Tesla**, **Apple**, **MSFT**).
-
-### Production Build
-
-```bash
-npm run build
-npm start
+# AI Gateway Fallback Configuration
+AI_DEFAULT_PROVIDER=gemini
+AI_FALLBACK_PROVIDER=openrouter
+AI_LAST_PROVIDER=xai
 ```
 
 ---
 
-## Environment Variables
+## 10. How the Application Works
 
-| Variable         | Description                          | Required |
-|------------------|--------------------------------------|----------|
-| `GOOGLE_API_KEY` | Google Gemini API key                | Yes      |
-| `FMP_API_KEY`    | Financial Modeling Prep API key      | Yes      |
-| `NEWS_API_KEY`   | NewsAPI key                          | Yes      |
-
-### Getting API Keys
-
-- **Google Gemini**: [Google AI Studio](https://aistudio.google.com/apikey) — free tier available
-- **Financial Modeling Prep**: [FMP Developer Docs](https://site.financialmodelingprep.com/developer/docs) — free tier (250 calls/day)
-- **NewsAPI**: [NewsAPI Register](https://newsapi.org/register) — free tier for development
+When a user searches for a company:
+1. The frontend displays a premium, animated loading screen that tracks the agent's progress.
+2. The server-side LangGraph workflow executes step-by-step, pulling data from FMP and NewsAPI.
+3. The custom AI Gateway sends prompts to the designated LLM provider. If the primary provider (e.g., Gemini) returns an error (like a 429 Rate Limit or invalid key), the circuit breaker automatically routes the request to the next provider in the chain (OpenRouter or xAI).
+4. Once the graph completes, it returns a strictly typed JSON object to the frontend.
+5. The frontend populates the dashboard with data visualizations and allows the user to export the findings as a formatted PDF.
 
 ---
 
-## Tech Stack
+## 11. Design Decisions and Tradeoffs
 
-| Layer       | Technology                        |
-|-------------|-----------------------------------|
-| Framework   | Next.js 16 (App Router)           |
-| UI          | React 19, Tailwind CSS 4, Shadcn UI |
-| Charts      | Recharts                          |
-| AI Agent    | LangChain.js, LangGraph.js        |
-| LLM         | Google Gemini 2.5 Flash           |
-| Financial   | Financial Modeling Prep API       |
-| News        | NewsAPI                           |
-| Language    | TypeScript                        |
+- **LangGraph vs. Standard Prompts**: Chose LangGraph to manage complex state transitions and ensure the pipeline remains modular. This makes it much easier to add new research nodes later without rewriting a massive prompt chain.
+- **Server-Side Execution**: The entire agent runs in an API route. *Tradeoff:* API responses can take 15-30 seconds, requiring a robust frontend loading state to keep users engaged, but it securely hides all API keys and business logic.
+- **Deterministic Scoring**: The final 0-100 score is calculated using standard math formulas based on the gathered data, rather than asking the LLM to "guess" a score. The LLM is only used for qualitative reasoning and risk assessment.
+- **No Database**: To keep the project scope manageable and deployment simple, there is no persistent backend database. Search history is stored locally via `localStorage`.
 
 ---
 
-## Key Decisions
+## 12. Example Workflow
 
-1. **LangGraph over simple prompt chains** — Enables structured multi-step workflows with conditional routing, shared state, and easy extensibility for future nodes (e.g., SEC filing analysis).
+**Search Query:** "Tesla"
 
-2. **Deterministic scoring with AI reasoning** — The investment score uses fixed weights and formulas for reproducibility. AI (Gemini) is used for risk analysis and natural-language reasoning, not for the score itself.
-
-3. **No database** — Stateless architecture keeps deployment simple. Research history uses localStorage on the client.
-
-4. **Next.js API Routes** — Single deployment target, no separate Express server. The LangGraph workflow runs server-side in `/api/analyze`.
-
-5. **Graceful degradation** — If news or AI analysis fails, the workflow continues with fallback data rather than crashing.
-
----
-
-## Tradeoffs
-
-| Decision                    | Pro                          | Con                              |
-|-----------------------------|------------------------------|----------------------------------|
-| No database                 | Simple deployment            | No persistent research history   |
-| FMP free tier               | Real financial data          | Rate limits (250 calls/day)      |
-| Keyword sentiment           | Fast, no extra API calls     | Less nuanced than LLM sentiment  |
-| Server-side only agent      | API keys stay secure         | Longer response times (~15–30s)  |
-| Single company analysis     | Focused UX                   | No comparison mode (future)      |
+1. **Company Node**: Identifies "TSLA" on the NASDAQ.
+2. **Financial Node**: Pulls metrics (e.g., $96B Revenue, 45x P/E ratio, $30B Cash).
+3. **News Node**: Reads recent headlines regarding EV demand and regulatory updates.
+4. **Risk Node**: LLM evaluates intense competition from Chinese EV makers and regulatory hurdles for autonomous driving.
+5. **Score Node**: Calculates a `72/100` based on strong cash flow but high valuation multiples.
+6. **Decision Node**: Recommends **"Invest"** with an 82% confidence level.
+7. **Frontend**: Renders the dashboard and allows the user to download the `Tesla_VERIQO_INTELLIGENCE.pdf` report.
 
 ---
 
-## Example Runs
+## 13. Deployment Instructions
 
-### Tesla (TSLA)
+This project is optimized for deployment on Vercel.
 
-```
-Score: 72/100
-Verdict: Invest
-Confidence: 82%
+1. Install the Vercel CLI or connect your GitHub repository to Vercel.
+2. Add all the required Environment Variables in the Vercel dashboard.
+3. Deploy the application:
+   ```bash
+   vercel --prod
+   ```
 
-Reasons:
-• Strong revenue growth in EV sector
-• Healthy operating cash flow
-• Mixed news sentiment with regulatory headwinds
-• Moderate debt levels
-```
-
-### Apple (AAPL)
-
-```
-Score: 85/100
-Verdict: Strong Invest
-Confidence: 90%
-
-Reasons:
-• Excellent profitability margins
-• Strong balance sheet with low debt
-• Positive news sentiment
-• Low overall risk profile
-```
+*Note: Since the LangGraph workflow can take 15-30 seconds, ensure your serverless function timeout limits are configured appropriately (Vercel Pro may be required for functions exceeding 10 seconds, depending on the current platform limits).*
 
 ---
 
-## Future Improvements
+## 14. Future Improvements
 
-- [ ] PDF report export
-- [ ] Side-by-side company comparison
-- [ ] SEC filing / 10-K analysis node
-- [ ] Real-time streaming progress via SSE
-- [ ] Source citation links with confidence scores
-- [ ] Portfolio tracking integration
-- [ ] Annual report PDF analysis
+- **WebSockets / Server-Sent Events (SSE)**: Stream intermediate agent thoughts directly to the UI instead of waiting for the full pipeline to complete.
+- **Database Integration**: Implement PostgreSQL (via Prisma or Drizzle) to allow users to save portfolios and track historical report changes over time.
+- **10-K Document Parsing**: Add a node to fetch and analyze the company's latest SEC filings using Retrieval-Augmented Generation (RAG).
 
 ---
 
-## Deployment
+## 15. AI Assisted Development
 
-### Vercel (Recommended)
+AI was utilized throughout the lifecycle of this project to accelerate development and improve code quality. LLM tools were involved in:
+- Planning and architecture discussions.
+- Prompt engineering for the specific LangGraph nodes.
+- UI refinement and Tailwind CSS styling.
+- Debugging complex type errors in TypeScript.
+- Writing documentation and implementation support.
 
-```bash
-npm i -g vercel
-vercel
-```
-
-Set environment variables in the Vercel dashboard under **Settings → Environment Variables**.
-
-### Docker
-
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --production=false
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "start"]
-```
+> **Note on Development Logs:** Representative AI development logs are included with the submission to showcase the development process. Due to the size of the project, some implementation-focused conversations containing very large code snippets have been omitted. The shared logs focus primarily on architecture, design decisions, problem-solving, and the overall iterative process.
 
 ---
 
-## Disclaimer
+## 16. Acknowledgements
 
-This application is for **informational and educational purposes only**. It does not constitute financial advice. Always conduct your own research and consult a qualified financial advisor before making investment decisions.
+- Financial data provided by [Financial Modeling Prep](https://site.financialmodelingprep.com/)
+- News data provided by [NewsAPI](https://newsapi.org/)
+- UI Components inspired by [Shadcn UI](https://ui.shadcn.com/)
 
 ---
 
-## License
+## 17. License
 
-MIT
+This project is licensed under the MIT License. See the `LICENSE` file for details.

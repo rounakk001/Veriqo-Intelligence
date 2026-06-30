@@ -342,12 +342,12 @@ export async function fetchFinancialMetrics(
     coerceNumber(financialData.operatingCashFlow) ??
     coerceNumber(financialData.operatingCashflow) ??
     0;
-  const capitalExpenditure = coerceNumber((latestCashFlow as any).capitalExpenditures) ?? 0;
+  const capitalExpenditure = coerceNumber((latestCashFlow as Record<string, unknown>).capitalExpenditures) ?? 0;
   const calculatedFcf = operatingCashFlow - Math.abs(capitalExpenditure);
 
   const freeCashFlow =
     coerceNumber(latestCashFlow.freeCashFlow) ??
-    coerceNumber((financialData as any).freeCashflow) ??
+    coerceNumber((financialData as Record<string, unknown>).freeCashflow) ??
     coerceNumber(financialData.freeCashFlow) ??
     calculatedFcf;
   const totalDebt =

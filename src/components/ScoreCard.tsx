@@ -35,11 +35,17 @@ function getScoreColor(score: number): string {
   return "#ef4444";
 }
 
-function getScoreLabel(score: number): string {
-  if (score >= 80) return "Strong";
-  if (score >= 60) return "Good";
-  if (score >= 40) return "Moderate";
-  return "Weak";
+function getScoreLabel(score: number) {
+
+  if (score >= 85) return "Excellent";
+
+  if (score >= 70) return "Strong";
+
+  if (score >= 55) return "Moderate";
+
+  if (score >= 40) return "Weak";
+
+  return "Poor";
 }
 
 export function ScoreCard({ score, breakdown }: ScoreCardProps) {

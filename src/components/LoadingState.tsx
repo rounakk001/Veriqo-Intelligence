@@ -4,7 +4,7 @@ import { Check, Loader2, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils/utils";
 import { LOADING_STEPS, type LoadingStepId } from "@/types/agent";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 interface LoadingStateProps {
   currentStep: LoadingStepId | null;
@@ -14,31 +14,27 @@ interface LoadingStateProps {
 
 const LIVE_STATUSES = [
   "Analyzing quarterly financial statements...",
-  "Comparing valuation multiples...",
-  "Calculating profitability metrics...",
-  "Scanning recent market news...",
-  "Evaluating macroeconomic risks...",
-  "Comparing against industry peers...",
-  "Estimating long-term growth...",
-  "Computing intrinsic investment score...",
-  "Generating executive summary...",
-  "Preparing final recommendation...",
+  "Evaluating revenue trends...",
+  "Calculating profitability...",
+  "Scanning market news...",
+  "Assessing business risks...",
+  "Comparing industry peers...",
+  "Computing investment score...",
+  "Preparing executive summary...",
+  "Generating recommendation...",
 ];
 
 export function LoadingState({ currentStep, completedSteps, companyName }: LoadingStateProps) {
   const [statusIndex, setStatusIndex] = useState(0);
   const [factIndex, setFactIndex] = useState(0);
 
-  const FUN_FACTS = useMemo(() => {
-    const target = companyName?.toUpperCase() || "this company";
-    return [
-      `Companies with strong free cash flow like ${target} tend to outperform over long periods.`,
-      `Diversification reduces unsystematic risk when adding ${target} to a portfolio.`,
-      `News sentiment often impacts ${target}'s short-term volatility.`,
-      `Debt quality matters more than debt size when evaluating ${target}.`,
-      `Revenue growth without profitability may be unsustainable in ${target}'s sector.`,
-    ];
-  }, [companyName]);
+  const FUN_FACTS = [
+    "Free cash flow often matters more than reported earnings.",
+    "Companies with strong balance sheets generally perform better during downturns.",
+    "High ROE should always be evaluated alongside debt.",
+    "Consistent operating cash flow is a strong indicator of business quality.",
+    "Revenue growth without profitability may not be sustainable."
+  ];
 
   // Rotate statuses every 2.5s
   useEffect(() => {
@@ -79,18 +75,36 @@ export function LoadingState({ currentStep, completedSteps, companyName }: Loadi
           AI Investment Analysis in Progress
         </h3>
         <p className="mt-2 text-sm text-zinc-400">
-          Our multi-agent system is researching {companyName ? ` ${companyName.toUpperCase()}` : "the company"} using financial data, news, risk models and AI reasoning.
+          Our multi-agent system is researching {companyName ? `${companyName.toUpperCase()} ` : "the company "}using financial data, market news, risk models and AI reasoning.
         </p>
       </div>
 
-      {/* Progress Bar */}
-      <div className="mb-8 h-1.5 w-full overflow-hidden rounded-full bg-zinc-900 shadow-inner">
-        <motion.div 
-          className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-          initial={{ width: "0%" }}
-          animate={{ width: `${Math.max(5, (completedSteps.length / LOADING_STEPS.length) * 100)}%` }}
-          transition={{ duration: 0.5 }}
-        />
+      {/* Progress Bar & ETA */}
+      <div className="mb-8 w-full">
+        <div className="mb-2 flex items-center justify-between text-xs font-medium text-zinc-500">
+          <span>Progress</span>
+          <span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={isAlmostDone ? "almost" : "eta"}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {isAlmostDone ? "Almost finished..." : "Estimated completion: 15–30 seconds"}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-900 shadow-inner">
+          <motion.div 
+            className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+            initial={{ width: "0%" }}
+            animate={{ width: `${Math.max(5, (completedSteps.length / LOADING_STEPS.length) * 100)}%` }}
+            transition={{ duration: 0.5 }}
+          />
+        </div>
       </div>
 
       {/* Timeline */}

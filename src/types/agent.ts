@@ -147,8 +147,8 @@ export const LOADING_STEPS = [
   { id: "company", label: "Company Identified" },
   { id: "financials", label: "Financial Statements Retrieved" },
   { id: "news", label: "News Intelligence" },
-  { id: "analysis", label: "AI Financial Analysis" },
-  { id: "risks", label: "Risk Modeling" },
+  { id: "analysis", label: "Financial Analysis" },
+  { id: "risks", label: "Risk Assessment" },
   { id: "score", label: "Investment Scoring" },
   { id: "decision", label: "Executive Summary" },
 ] as const;

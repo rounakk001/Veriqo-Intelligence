@@ -1,272 +1,99 @@
 import jsPDF from "jspdf";
 import type { AnalysisResult } from "@/types/agent";
 
-import {
-    PAGE,
-    PDF_THEME,
-    setSectionTitle,
-} from "./pdfTheme";
+import { PAGE, PDF_THEME, setSectionTitle } from "./pdfTheme";
+import { ensurePageSpace, recommendationColor, drawBadge, drawCard, addWrappedText } from "./pdfHelpers";
 
-import {
-    ensurePageSpace,
-    recommendationColor,
-    drawBadge,
-} from "./pdfHelpers";
-
-function drawRecommendationHero(
-    doc: jsPDF,
-    result: AnalysisResult,
-    y: number
-) {
-    doc.setDrawColor(...PDF_THEME.primary);
-    doc.setFillColor(248, 250, 252);
-
-    doc.roundedRect(
-        PAGE.marginX,
-        y,
-        PAGE.contentWidth,
-        42,
-        3,
-        3,
-        "FD"
-    );
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(...PDF_THEME.secondary);
-
-    doc.text(
-        result.profile.companyName,
-        PAGE.marginX + 6,
-        y + 12
-    );
-
-    drawBadge(
-        doc,
-        result.verdict.toUpperCase(),
-        PAGE.width - 58,
-        y + 6,
-        recommendationColor(result.verdict)
-    );
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.setTextColor(...PDF_THEME.text);
-
-    doc.text(
-        `${result.profile.symbol} • ${result.profile.exchange}`,
-        PAGE.marginX + 6,
-        y + 22
-    );
-
-    doc.text(
-        `Overall Investment Score: ${result.score}/100`,
-        PAGE.marginX + 6,
-        y + 33
-    );
-
-    return y + 54;
-}
-
-function drawConfidenceCard(
-    doc: jsPDF,
-    result: AnalysisResult,
-    y: number
-) {
-    doc.setDrawColor(...PDF_THEME.border);
-
-    doc.roundedRect(
-        PAGE.marginX,
-        y,
-        PAGE.contentWidth,
-        32,
-        3,
-        3
-    );
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-
-    doc.text(
-        "Confidence Level",
-        PAGE.marginX + 6,
-        y + 10
-    );
-
-    const percent =
-        `${result.confidence}%`;
-
-    let color = PDF_THEME.danger;
-
-    if (result.confidence >= 80)
-        color = PDF_THEME.success;
-    else if (result.confidence >= 60)
-        color = PDF_THEME.warning;
-
-    doc.setFontSize(18);
-    doc.setTextColor(...color);
-
-    doc.text(
-        percent,
-        PAGE.width - 22,
-        y + 18,
-        {
-            align: "right",
-        }
-    );
-
-    doc.setTextColor(...PDF_THEME.text);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-
-    const reason =
-        doc.splitTextToSize(
-            result.executiveSummary.confidenceReason,
-            PAGE.contentWidth - 12
-        );
-
-    doc.text(
-        reason,
-        PAGE.marginX + 6,
-        y + 24
-    );
-
-    return y + 42;
-}
-
-function drawExecutiveSummary(
-    doc: jsPDF,
-    result: AnalysisResult,
-    y: number
-) {
-    setSectionTitle(
-        doc,
-        "Executive Summary",
-        y
-    );
-
-    y += 16;
-
-    const summary =
-        doc.splitTextToSize(
-            result.executiveSummary.summary,
-            PAGE.contentWidth
-        );
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.setTextColor(...PDF_THEME.text);
-
-    doc.text(
-        summary,
-        PAGE.marginX,
-        y
-    );
-
-    return (
-        y +
-        summary.length * 5 +
-        12
-    );
-}
-
-function drawRecommendationReason(
-    doc: jsPDF,
-    result: AnalysisResult,
-    y: number
-) {
-    y = ensurePageSpace(
-        doc,
-        y,
-        70
-    );
-
-    setSectionTitle(
-        doc,
-        "Recommendation Rationale",
-        y
-    );
-
-    y += 16;
-
-    const text =
-        doc.splitTextToSize(
-            result.executiveSummary.recommendationReason,
-            PAGE.contentWidth - 12
-        );
-
-    const height =
-        text.length * 5 + 18;
-
-    doc.setFillColor(
-        245,
-        250,
-        255
-    );
-
-    doc.setDrawColor(
-        ...PDF_THEME.primary
-    );
-
-    doc.roundedRect(
-        PAGE.marginX,
-        y,
-        PAGE.contentWidth,
-        height,
-        3,
-        3,
-        "FD"
-    );
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-
-    doc.text(
-        text,
-        PAGE.marginX + 6,
-        y + 10
-    );
-
-    return y + height + 8;
-}
-
-export function drawSummary(
-    doc: jsPDF,
-    result: AnalysisResult
-) {
+export function drawSummary(doc: jsPDF, result: AnalysisResult) {
     let y = PAGE.marginY;
 
-    setSectionTitle(
-        doc,
-        "Final Investment Summary",
-        y
-    );
+    setSectionTitle(doc, "EXECUTIVE SUMMARY", y);
+    y += 15;
 
-    y += 18;
+    // Investment Thesis Card
+    drawCard(doc, PAGE.marginX, y, PAGE.width - PAGE.marginX * 2, 45);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_THEME.textLight);
+    doc.text("INVESTMENT THESIS", PAGE.marginX + 6, y + 8);
+    
+    y = addWrappedText(doc, result.executiveSummary.summary, y + 16, 10, PAGE.width - PAGE.marginX * 2 - 12, PAGE.marginX + 6, PDF_THEME.text) + 20;
 
-    y = drawRecommendationHero(
-        doc,
-        result,
-        y
-    );
+    // Recommendation & Confidence Split
+    const splitWidth = (PAGE.width - PAGE.marginX * 2 - 5) / 2;
+    
+    // Recommendation Card
+    drawCard(doc, PAGE.marginX, y, splitWidth, 25);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF_THEME.textLight);
+    doc.text("FINAL RECOMMENDATION", PAGE.marginX + 6, y + 8);
+    drawBadge(doc, result.verdict.toUpperCase(), PAGE.marginX + 6, y + 12, recommendationColor(result.verdict));
 
-    y = drawConfidenceCard(
-        doc,
-        result,
-        y
-    );
+    // Confidence Card
+    drawCard(doc, PAGE.marginX + splitWidth + 5, y, splitWidth, 25);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...PDF_THEME.textLight);
+    doc.text("CONFIDENCE & SCORE", PAGE.marginX + splitWidth + 11, y + 8);
+    
+    doc.setFontSize(18);
+    doc.setTextColor(...PDF_THEME.primary);
+    doc.text(`${result.score}/100`, PAGE.marginX + splitWidth + 11, y + 19);
+    
+    doc.setFontSize(12);
+    let color = PDF_THEME.danger;
+    if (result.confidence >= 80) color = PDF_THEME.success;
+    else if (result.confidence >= 60) color = PDF_THEME.warning;
+    doc.setTextColor(...color);
+    doc.text(`${result.confidence}%`, PAGE.width - PAGE.marginX - 10, y + 19, { align: "right" });
+    
+    y += 32;
 
-    y = drawExecutiveSummary(
-        doc,
-        result,
-        y
-    );
+    // Recommendation Rationale
+    y = ensurePageSpace(doc, y, 50);
+    drawCard(doc, PAGE.marginX, y, PAGE.width - PAGE.marginX * 2, 50);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_THEME.textLight);
+    doc.text("RECOMMENDATION RATIONALE", PAGE.marginX + 6, y + 8);
+    
+    y = addWrappedText(doc, result.executiveSummary.recommendationReason, y + 16, 10, PAGE.width - PAGE.marginX * 2 - 12, PAGE.marginX + 6, PDF_THEME.text) + 30;
 
-    y = drawRecommendationReason(
-        doc,
-        result,
-        y
-    );
+    // Key Strengths & Risks
+    y = ensurePageSpace(doc, y, 60);
+    
+    // Strengths
+    drawCard(doc, PAGE.marginX, y, splitWidth, 55);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_THEME.success);
+    doc.text("KEY STRENGTHS", PAGE.marginX + 6, y + 8);
+    
+    let strengthY = y + 16;
+    result.executiveSummary.keyStrengths.slice(0, 3).forEach(strength => {
+        doc.setFillColor(...PDF_THEME.success);
+        doc.circle(PAGE.marginX + 8, strengthY - 1, 1, "F");
+        strengthY = addWrappedText(doc, strength, strengthY, 9, splitWidth - 12, PAGE.marginX + 12, PDF_THEME.text) + 4;
+    });
+
+    // Risks
+    drawCard(doc, PAGE.marginX + splitWidth + 5, y, splitWidth, 55);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_THEME.danger);
+    doc.text("KEY RISKS", PAGE.marginX + splitWidth + 11, y + 8);
+    
+    let riskY = y + 16;
+    result.executiveSummary.keyRisks.slice(0, 3).forEach(risk => {
+        doc.setFillColor(...PDF_THEME.danger);
+        doc.circle(PAGE.marginX + splitWidth + 13, riskY - 1, 1, "F");
+        riskY = addWrappedText(doc, risk, riskY, 9, splitWidth - 12, PAGE.marginX + splitWidth + 17, PDF_THEME.text) + 4;
+    });
+
+    y += 65;
+    
+    doc.addPage();
     return y;
 }

@@ -415,6 +415,13 @@ Financial Metrics:
 - Debt to Equity: ${financials.debtToEquity ?? "N/A"}
 - P/E Ratio: ${financials.peRatio ?? "N/A"}
 
+Financial Component Scores:
+- Financial Health: ${financials.healthScore}/100
+- Profitability: ${financials.profitabilityScore}/100
+- Growth: ${financials.growthScore}/100
+- News Sentiment: ${news.sentimentScore}/100
+- Risk Score: ${risks.riskScore}/100
+
 News:
 - Sentiment Score: ${news.sentimentScore}/100
 - Major Events: ${news.majorEvents.join(", ") || "None"}
@@ -425,11 +432,38 @@ Risk:
 Investment Score:
 ${score}/100
 
-Recommendation:
+Final Recommendation:
 ${verdict}
 
-Return ONLY valid JSON in this exact format:
+CRITICAL INSTRUCTIONS:
 
+- The executive summary MUST remain fully consistent with the Final Recommendation.
+- Never contradict the recommendation.
+- Base your reasoning primarily on the Investment Score and the Financial Component Scores.
+- Mention both positives and negatives, but ensure the conclusion matches the recommendation.
+- Do not exaggerate strengths or weaknesses beyond the provided data.
+
+Recommendation-specific guidance:
+
+If the Final Recommendation is "Pass":
+- Explain that the risks or weak fundamentals outweigh the strengths.
+- Do NOT describe the company as an attractive investment.
+- Clearly justify why investors should avoid or postpone investing.
+
+If the Final Recommendation is "Neutral":
+- Present a balanced assessment.
+- Explain why the company is worth monitoring but not an aggressive buy.
+
+If the Final Recommendation is "Invest":
+- Highlight the company's strengths.
+- Acknowledge remaining risks.
+- Explain why the positives outweigh the negatives.
+
+If the Final Recommendation is "Strong Invest":
+- Emphasize outstanding financial quality, strong fundamentals and attractive long-term potential.
+- Mention any remaining risks without weakening the overall positive recommendation.
+
+Return ONLY valid JSON in this exact format:
 
 {
   "summary": "...",
@@ -452,33 +486,35 @@ Return ONLY valid JSON in this exact format:
 }
 
 Rules:
-- summary must be under 100 words
-- exactly 3 strengths
-- exactly 3 risks
-- outlook under 40 words
-- no markdown
-- no extra text
+- summary must be under 100 words.
+- summary must justify the Final Recommendation.
+- exactly 3 keyStrengths.
+- exactly 3 keyRisks.
+- outlook under 40 words.
+- recommendationReason must explain why the recommendation was selected.
+- confidenceReason must explain why the confidence level is appropriate.
+- No markdown.
+- No extra text.
+- Return valid JSON only.
 
-- investmentHorizon should be one of:
-  "Short-term (0–1 Year)"
-  "Medium-term (1–3 Years)"
-  "Long-term (3–5 Years)"
-  "Very Long-term (5+ Years)"
+investmentHorizon must be one of:
+- "Short-term (0–1 Year)"
+- "Medium-term (1–3 Years)"
+- "Long-term (3–5 Years)"
+- "Very Long-term (5+ Years)"
 
-- investorType should describe the ideal investor.
-  Example:
-  "Growth Investors"
-  "Long-term Investors"
-  "Value Investors"
-  "Income Investors"
-  "Aggressive Investors"
+investorType examples:
+- "Growth Investors"
+- "Value Investors"
+- "Long-term Investors"
+- "Income Investors"
+- "Aggressive Investors"
 
-- action should be a single sentence investment action.
-  Examples:
-  "Accumulate on market corrections."
-  "Hold existing positions."
-  "Wait for better valuation."
-  "Avoid new investments until fundamentals improve."
+action must be a single concise investment recommendation such as:
+- "Accumulate on market corrections."
+- "Hold existing positions."
+- "Wait for a better valuation."
+- "Avoid new investments until fundamentals improve."
 `;
 
   try {

@@ -1,190 +1,133 @@
 import jsPDF from "jspdf";
 import type { AnalysisResult } from "@/types/agent";
+import { PAGE, PDF_THEME } from "./pdfTheme";
+import { drawBadge, drawCard, formatDate, recommendationColor } from "./pdfHelpers";
 
-import { PAGE, PDF_THEME, setTitle } from "./pdfTheme";
-import {
-    drawBadge,
-    formatDate,
-    recommendationColor,
-} from "./pdfHelpers";
-
-export function drawCoverPage(
-    doc: jsPDF,
-    result: AnalysisResult
-) {
-    // Background
-    doc.setFillColor(248, 250, 252);
+export function drawCoverPage(doc: jsPDF, result: AnalysisResult) {
+    // Elegant Background
+    doc.setFillColor(...PDF_THEME.surface);
     doc.rect(0, 0, PAGE.width, PAGE.height, "F");
 
-    // Top Accent Bar
-    doc.setFillColor(
-        PDF_THEME.primary[0],
-        PDF_THEME.primary[1],
-        PDF_THEME.primary[2]
-    );
-    doc.rect(0, 0, PAGE.width, 12, "F");
+    // Enterprise Accent Bar at the top
+    doc.setFillColor(...PDF_THEME.primary);
+    doc.rect(0, 0, PAGE.width, 16, "F");
 
-    // Title
-    setTitle(doc, "AI Investment Research Report");
-
-    // Company Name
+    // Top Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(28);
-    doc.setTextColor(
-        PDF_THEME.secondary[0],
-        PDF_THEME.secondary[1],
-        PDF_THEME.secondary[2]
-    );
+    doc.setTextColor(...PDF_THEME.primary);
+    doc.text("VERIQO INTELLIGENCE", PAGE.marginX, 45);
 
-    doc.text(
-        result.profile.companyName,
-        PAGE.marginX,
-        48
-    );
+    doc.setFontSize(14);
+    doc.setTextColor(...PDF_THEME.textLight);
+    doc.text("INSTITUTIONAL INVESTMENT RESEARCH", PAGE.marginX, 55);
 
-    // Symbol
-    doc.setFontSize(13);
-    doc.setFont("helvetica", "normal");
-
-    doc.text(
-        `${result.profile.symbol} • ${result.profile.exchange}`,
-        PAGE.marginX,
-        58
-    );
-
-    // Recommendation Badge
-    drawBadge(
-        doc,
-        result.verdict.toUpperCase(),
-        PAGE.marginX,
-        70,
-        recommendationColor(result.verdict)
-    );
-
-    // Score Circle
-    const centerX = 165;
-    const centerY = 70;
-
-    doc.setDrawColor(
-        PDF_THEME.primary[0],
-        PDF_THEME.primary[1],
-        PDF_THEME.primary[2]
-    );
-
+    // Thick Divider
+    doc.setDrawColor(...PDF_THEME.border);
     doc.setLineWidth(1.5);
+    doc.line(PAGE.marginX, 65, PAGE.width - PAGE.marginX, 65);
 
-    doc.circle(centerX, centerY, 18);
-
+    // Hero Section - Company Name
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
+    doc.setFontSize(36);
+    doc.setTextColor(...PDF_THEME.text);
+    const companyName = doc.splitTextToSize(result.profile.companyName, 120);
+    doc.text(companyName, PAGE.marginX, 85);
+    const companyNameHeight = companyName.length * 14;
 
-    doc.text(
-        String(result.score),
-        centerX,
-        centerY + 2,
-        {
-            align: "center",
-        }
-    );
-
-    doc.setFontSize(9);
-
-    doc.text(
-        "/100",
-        centerX,
-        centerY + 9,
-        {
-            align: "center",
-        }
-    );
-
-    // Generated Date
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
+    doc.setFontSize(18);
+    doc.setTextColor(...PDF_THEME.muted);
+    doc.text(`${result.profile.symbol} | ${result.profile.exchange}`, PAGE.marginX, 85 + companyNameHeight);
 
-    doc.text(
-        `Generated on ${formatDate()}`,
-        PAGE.marginX,
-        95
-    );
+    // Hero Section - Recommendation
+    const rcColor = recommendationColor(result.verdict);
+    drawBadge(doc, result.verdict.toUpperCase(), PAGE.marginX, 95 + companyNameHeight, rcColor);
 
-    // Divider
-    doc.setDrawColor(220, 220, 220);
+    // Score Circle (Top Right)
+    const centerX = PAGE.width - 40;
+    const centerY = 90;
 
-    doc.line(
-        PAGE.marginX,
-        105,
-        PAGE.width - PAGE.marginX,
-        105
-    );
+    // Draw concentric circles
+    doc.setDrawColor(...PDF_THEME.border);
+    doc.setLineWidth(0.5);
+    doc.circle(centerX, centerY, 24);
 
-    // Snapshot Title
+    doc.setDrawColor(...PDF_THEME.primary);
+    doc.setLineWidth(2.5);
+    doc.circle(centerX, centerY, 21);
+
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
+    doc.setFontSize(28);
+    doc.setTextColor(...PDF_THEME.primary);
+    doc.text(String(result.score), centerX, centerY + 3, { align: "center" });
 
-    doc.text(
-        "Company Snapshot",
-        PAGE.marginX,
-        120
-    );
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF_THEME.muted);
+    doc.text("AI SCORE", centerX, centerY + 9, { align: "center" });
 
-    // Snapshot Box
-    doc.roundedRect(
-        PAGE.marginX,
-        126,
-        178,
-        72,
-        3,
-        3
-    );
+    // Report Details Card
+    const detailsY = 140;
+    drawCard(doc, PAGE.marginX, detailsY, PAGE.width - PAGE.marginX * 2, 35);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...PDF_THEME.textLight);
+    
+    doc.text("REPORT GENERATED", PAGE.marginX + 8, detailsY + 12);
+    doc.text("CONFIDENCE LEVEL", PAGE.width / 2 - 10, detailsY + 12);
+    doc.text("REPORT ID", PAGE.width - PAGE.marginX - 55, detailsY + 12);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    doc.setTextColor(...PDF_THEME.text);
+    
+    doc.text(formatDate(), PAGE.marginX + 8, detailsY + 22);
+    doc.text(`${result.confidence}%`, PAGE.width / 2 - 10, detailsY + 22);
+    doc.text(`VQ-${new Date().getTime().toString().slice(-6)}`, PAGE.width - PAGE.marginX - 55, detailsY + 22);
 
+    // Snapshot Info Grid
+    const snapshotY = 190;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(...PDF_THEME.primary);
+    doc.text("COMPANY SNAPSHOT", PAGE.marginX, snapshotY);
+
+    const cols = 2;
     const rows = [
-        ["Sector", result.profile.sector],
-        ["Industry", result.profile.industry],
-        ["Country", result.profile.country],
-        ["Employees", result.profile.employees.toLocaleString()],
-        ["Website", result.profile.website || "-"],
+        { label: "Sector", value: result.profile.sector },
+        { label: "Industry", value: result.profile.industry },
+        { label: "Country", value: result.profile.country },
+        { label: "Employees", value: result.profile.employees?.toLocaleString() || "N/A" },
+        { label: "Website", value: result.profile.website || "N/A" },
+        { label: "IPO Date", value: result.profile.ipoDate || "N/A" }
     ];
 
-    let y = 138;
+    let currentY = snapshotY + 15;
+    const colWidth = (PAGE.width - PAGE.marginX * 2) / cols;
 
-    rows.forEach(([label, value]) => {
+    rows.forEach((row, i) => {
+        const x = PAGE.marginX + (i % cols) * colWidth;
+        const yOffset = Math.floor(i / cols) * 18;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...PDF_THEME.muted);
+        doc.text(row.label.toUpperCase(), x, currentY + yOffset);
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
-
-        doc.text(label, 22, y);
-
-        doc.setFont("helvetica", "normal");
-
-        doc.text(String(value), 70, y);
-
-        y += 12;
+        doc.setTextColor(...PDF_THEME.text);
+        doc.text(String(row.value).substring(0, 35), x, currentY + yOffset + 6);
     });
 
-    // Bottom Summary
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-
-    doc.text(
-        "Executive Summary",
-        PAGE.marginX,
-        215
-    );
-
+    // Disclaimer
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF_THEME.muted);
+    const disclaimerText = "This report is generated by VERIQO Intelligence AI. It is strictly for informational purposes and does not constitute financial advice. The models analyze public data, financials, and news to generate an automated assessment. VERIQO Intelligence takes no responsibility for investment decisions made based on this automated report.";
+    const lines = doc.splitTextToSize(disclaimerText, PAGE.width - PAGE.marginX * 2);
+    doc.text(lines, PAGE.marginX, PAGE.height - 25);
 
-    const summary = doc.splitTextToSize(
-        result.executiveSummary.summary,
-        178
-    );
-
-    doc.text(
-        summary,
-        PAGE.marginX,
-        225
-    );
-
-    // Next page
     doc.addPage();
 }
