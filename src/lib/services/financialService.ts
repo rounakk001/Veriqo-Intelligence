@@ -152,6 +152,17 @@ function growthRate(current: number, previous: number): number | null {
   return (current - previous) / Math.abs(previous);
 }
 
+function normalizePercentage(value: number | null): number | null {
+  if (value == null) return null;
+
+  // Yahoo generally returns ratios as decimals
+  if (Math.abs(value) <= 1) {
+    return value * 100;
+  }
+
+  return value;
+}
+
 function scoreFinancialHealth(
   debtToEquity: number | null,
   cash: number,
@@ -381,12 +392,12 @@ export async function fetchFinancialMetrics(
   const priceToBook =
     coerceNumber(defaultKeyStatistics.priceToBook) ??
     null;
-  const returnOnEquity =
-    coerceNumber(financialData.returnOnEquity) ??
-    null;
-  const returnOnAssets =
-    coerceNumber(financialData.returnOnAssets) ??
-    null;
+  const returnOnEquity = normalizePercentage(
+    coerceNumber(financialData.returnOnEquity)
+  );
+  const returnOnAssets = normalizePercentage(
+    coerceNumber(financialData.returnOnAssets)
+  );
   const trailingEps =
     coerceNumber(defaultKeyStatistics.trailingEps) ??
     null;
@@ -396,25 +407,25 @@ export async function fetchFinancialMetrics(
   const quickRatio =
     coerceNumber(financialData.quickRatio) ??
     null;
-  const grossMargin =
+  const grossMargin = normalizePercentage(
     coerceNumber(financialData.grossMargins) ??
-    coerceNumber(summaryDetail.grossMargins) ??
-    null;
-  const operatingMargin =
+    coerceNumber(summaryDetail.grossMargins)
+  );
+  const operatingMargin = normalizePercentage(
     coerceNumber(financialData.operatingMargins) ??
-    coerceNumber(summaryDetail.operatingMargins) ??
-    null;
-  const netMargin =
+    coerceNumber(summaryDetail.operatingMargins)
+  );
+  const netMargin = normalizePercentage(
     coerceNumber(financialData.profitMargins) ??
-    coerceNumber(summaryDetail.profitMargins) ??
-    null;
-  const ebitdaMargin =
+    coerceNumber(summaryDetail.profitMargins)
+  );
+  const ebitdaMargin = normalizePercentage(
     coerceNumber(financialData.ebitdaMargins) ??
-    coerceNumber(summaryDetail.ebitdaMargins) ??
-    null;
-  const dividendYield =
-    coerceNumber(summaryDetail.dividendYield) ??
-    null;
+    coerceNumber(summaryDetail.ebitdaMargins)
+  );
+  const dividendYield = normalizePercentage(
+    coerceNumber(summaryDetail.dividendYield)
+  );
   const enterpriseValue =
     coerceNumber(defaultKeyStatistics.enterpriseValue) ??
     null;
