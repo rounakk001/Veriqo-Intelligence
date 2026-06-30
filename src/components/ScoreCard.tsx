@@ -37,11 +37,11 @@ function getScoreColor(score: number): string {
 
 function getScoreLabel(score: number) {
 
-  if (score >= 85) return "Excellent";
+  if (score >= 80) return "Excellent";
 
-  if (score >= 70) return "Strong";
+  if (score >= 64) return "Strong";
 
-  if (score >= 55) return "Moderate";
+  if (score >= 50) return "Moderate";
 
   if (score >= 40) return "Weak";
 

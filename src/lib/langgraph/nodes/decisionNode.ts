@@ -15,11 +15,11 @@ function getVerdict(
   let verdict: Verdict;
 
   // Base recommendation driven entirely by composite investment score.
-  if (score >= 85) {
+  if (score >= 80) {
     verdict = "Strong Invest";
-  } else if (score >= 70) {
+  } else if (score >= 64) {
     verdict = "Invest";
-  } else if (score >= 55) {
+  } else if (score >= 50) {
     verdict = "Neutral";
   } else {
     verdict = "Pass";
