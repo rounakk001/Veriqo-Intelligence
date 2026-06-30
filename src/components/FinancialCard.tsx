@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatCurrency, formatPercent } from "@/lib/utils/format";
+import { formatMoney, formatPercent } from "@/lib/utils/format";
 import type { FinancialMetrics } from "@/types/agent";
 
 interface FinancialCardProps {
@@ -23,26 +23,27 @@ interface FinancialCardProps {
 }
 
 export function FinancialCard({ financials }: FinancialCardProps) {
+  const cur = financials.currency;
   const chartData = [
     {
       name: "Revenue",
-      value: Math.abs(financials.revenue) / 1e9,
-      display: formatCurrency(financials.revenue),
+      value: financials.revenue,
+      display: formatMoney(financials.revenue, cur, { compact: false }),
     },
     {
       name: "Net Income",
-      value: Math.abs(financials.netIncome) / 1e9,
-      display: formatCurrency(financials.netIncome),
+      value: financials.netIncome,
+      display: formatMoney(financials.netIncome, cur, { compact: false }),
     },
     {
       name: "Op. Cash Flow",
-      value: Math.abs(financials.operatingCashFlow) / 1e9,
-      display: formatCurrency(financials.operatingCashFlow),
+      value: financials.operatingCashFlow,
+      display: formatMoney(financials.operatingCashFlow, cur, { compact: false }),
     },
     {
       name: "Free Cash Flow",
-      value: Math.abs(financials.freeCashFlow) / 1e9,
-      display: formatCurrency(financials.freeCashFlow),
+      value: financials.freeCashFlow,
+      display: formatMoney(financials.freeCashFlow, cur, { compact: false }),
     },
   ];
 
@@ -60,7 +61,7 @@ export function FinancialCard({ financials }: FinancialCardProps) {
       : "Debt position is not available.",
     financials.operatingMargin != null
       ? `Operating margin is ${formatPercent(financials.operatingMargin)}, ` +
-      (financials.operatingMargin >= 0.15
+      (financials.operatingMargin >= 15
         ? "supporting durable profitability."
         : "showing room for margin improvement.")
       : "Operating margin information is not available.",
@@ -76,8 +77,8 @@ export function FinancialCard({ financials }: FinancialCardProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Metric label="Market Cap" value={formatCurrency(financials.marketCap)} />
-          <Metric label="Enterprise Value" value={formatCurrency(financials.enterpriseValue)} />
+          <Metric label="Market Cap" value={formatMoney(financials.marketCap, cur)} />
+          <Metric label="Enterprise Value" value={formatMoney(financials.enterpriseValue, cur)} />
           <Metric label="P/E Ratio" value={financials.peRatio?.toFixed(2) ?? "N/A"} />
           <Metric label="PEG Ratio" value={financials.pegRatio?.toFixed(2) ?? "N/A"} />
           <Metric label="Price / Book" value={financials.priceToBook?.toFixed(2) ?? "N/A"} />
@@ -107,7 +108,7 @@ export function FinancialCard({ financials }: FinancialCardProps) {
                 tick={{ fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v) => `$${v}B`}
+                tickFormatter={(v) => formatMoney(v, cur)}
               />
               <Tooltip
                 formatter={(_value, _name, props) => [

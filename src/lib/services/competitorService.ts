@@ -1,6 +1,7 @@
 import type { CompetitorComparison } from "@/types/agent";
 import { fetchFinancialMetrics } from "./financialService";
 import { fetchCompanyProfile } from "./financialService";
+import { calculateBaseFinancialScore } from "@/lib/utils/scoring";
 import { API } from "@/lib/config/api";
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY!;
@@ -47,11 +48,7 @@ export async function fetchCompetitors(
                     fetchCompanyProfile(peer),
                 ]);
 
-                const overallScore = Math.round(
-                    financials.healthScore * 0.4 +
-                    financials.profitabilityScore * 0.35 +
-                    financials.growthScore * 0.25
-                );
+                const overallScore = calculateBaseFinancialScore(financials);
 
                 return {
                     symbol: peer,

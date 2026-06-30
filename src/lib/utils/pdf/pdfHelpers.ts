@@ -15,7 +15,7 @@ export function formatPercentage(
 ) {
     if (value == null) return "-";
 
-    return `${(value * 100).toFixed(2)}%`;
+    return `${value.toFixed(2)}%`;
 }
 
 export function formatNumber(

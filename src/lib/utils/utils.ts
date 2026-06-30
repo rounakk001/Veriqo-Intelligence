@@ -21,6 +21,6 @@ export function formatCurrency(value: number | null | undefined): string {
 
 export function formatPercent(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "N/A";
-  return `${(value * 100).toFixed(1)}%`;
+  return `${value.toFixed(1)}%`;
 }
 

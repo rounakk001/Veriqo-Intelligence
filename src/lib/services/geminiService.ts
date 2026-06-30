@@ -118,7 +118,7 @@ Company Profile:
 
 Financial Data:
 - Revenue: $${financials.revenue}
-- Revenue Growth: ${financials.revenueGrowth != null ? (financials.revenueGrowth * 100).toFixed(1) + "%" : "N/A"}
+- Revenue Growth: ${financials.revenueGrowth != null ? financials.revenueGrowth.toFixed(1) + "%" : "N/A"}
 - Net Income: $${financials.netIncome}
 - Debt/Equity: ${financials.debtToEquity ?? "N/A"}
 - P/E Ratio: ${financials.peRatio ?? "N/A"}
@@ -258,7 +258,7 @@ Financial Analysis
 - Profitability: ${financials.profitabilityScore}/100
 - Growth: ${financials.growthScore}/100
 - Revenue Growth: ${financials.revenueGrowth != null
-      ? (financials.revenueGrowth * 100).toFixed(1) + "%"
+      ? financials.revenueGrowth.toFixed(1) + "%"
       : "N/A"
     }
 - Net Margin: ${financials.netMargin ?? "N/A"}%
@@ -327,7 +327,7 @@ function buildFallbackReasoning(
 
   if (financials.revenueGrowth != null) {
     reasons.push(
-      `Revenue ${financials.revenueGrowth >= 0 ? "grew" : "declined"} ${Math.abs(financials.revenueGrowth * 100).toFixed(1)}% year-over-year.`
+      `Revenue ${financials.revenueGrowth >= 0 ? "grew" : "declined"} ${Math.abs(financials.revenueGrowth).toFixed(1)}% year-over-year.`
     );
   }
 
@@ -407,7 +407,7 @@ Company Profile:
 
 Financial Metrics:
 - Revenue Growth: ${financials.revenueGrowth != null
-      ? (financials.revenueGrowth * 100).toFixed(1) + "%"
+      ? financials.revenueGrowth.toFixed(1) + "%"
       : "N/A"
     }
 - Net Margin: ${financials.netMargin ?? "N/A"}%

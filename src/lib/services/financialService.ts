@@ -155,12 +155,8 @@ function growthRate(current: number, previous: number): number | null {
 function normalizePercentage(value: number | null): number | null {
   if (value == null) return null;
 
-  // Yahoo generally returns ratios as decimals
-  if (Math.abs(value) <= 1) {
-    return value * 100;
-  }
-
-  return value;
+  // Yahoo returns all margin/return ratios as decimals (e.g. 0.22 for 22%, 1.14 for 114%)
+  return value * 100;
 }
 
 function scoreFinancialHealth(
@@ -178,8 +174,14 @@ function scoreFinancialHealth(
     else score -= 15;
   }
 
-  if (operatingCashFlow > 0) score += 15;
-  else score -= 20;
+  if (operatingCashFlow > 0) {
+    score += 15;
+  } else {
+    // Negative OCF is typical for banks (loan origination) or heavy growth companies.
+    // If they have massive cash reserves (e.g. > debt * 0.5), we shouldn't strictly penalize.
+    if (cash > debt * 0.5) score += 0;
+    else score -= 20;
+  }
 
   if (cash > debt) score += 10;
   else if (debt > cash * 2) score -= 10;
@@ -189,22 +191,23 @@ function scoreFinancialHealth(
 
 function scoreProfitability(netMargin: number | null): number {
   if (netMargin == null) return 50;
-  if (netMargin > 0.2) return 90;
-  if (netMargin > 0.1) return 75;
-  if (netMargin > 0.05) return 60;
+  if (netMargin > 20) return 90;
+  if (netMargin > 10) return 75;
+  if (netMargin > 5) return 60;
   if (netMargin > 0) return 45;
   return 20;
 }
 
 function scoreGrowth(revenueGrowth: number | null): number {
   if (revenueGrowth == null) return 50;
-  if (revenueGrowth > 0.25) return 95;
-  if (revenueGrowth > 0.15) return 80;
-  if (revenueGrowth > 0.05) return 65;
+  if (revenueGrowth > 25) return 95;
+  if (revenueGrowth > 15) return 80;
+  if (revenueGrowth > 5) return 65;
   if (revenueGrowth > 0) return 55;
-  if (revenueGrowth > -0.05) return 40;
+  if (revenueGrowth > -5) return 40;
   return 25;
 }
+
 
 export async function searchCompany(query: string): Promise<SearchResult[]> {
   const response = await yahooFinance.search(query, {
@@ -310,6 +313,7 @@ export async function fetchFinancialMetrics(
       "balanceSheetHistory",
       "cashflowStatementHistory",
     ],
+    
   });
 
   const financialData = (summary as QuoteSummaryRaw).financialData ?? {};
@@ -317,6 +321,14 @@ export async function fetchFinancialMetrics(
     (summary as QuoteSummaryRaw).defaultKeyStatistics ?? {};
   const price = (summary as QuoteSummaryRaw).price ?? {};
   const summaryDetail = (summary as QuoteSummaryRaw).summaryDetail ?? {};
+
+  // Authoritative financial statement currency.
+  // financialData.financialCurrency represents the denomination of the P&L / balance sheet.
+  // price.currency is the trading currency (may differ for cross-listed stocks like VOD.L).
+  const currency: string =
+    (financialData as Record<string, unknown>).financialCurrency as string ||
+    price.currency ||
+    "USD";
 
   const incomeStatements = Array.isArray(
     (summary as QuoteSummaryRaw).incomeStatementHistory?.incomeStatementHistory
@@ -343,9 +355,19 @@ export async function fetchFinancialMetrics(
 
   const revenue = coerceNumber(latestIncome.totalRevenue) ?? 0;
   const netIncome = coerceNumber(latestIncome.netIncome) ?? 0;
+  const rawRevenueGrowth = coerceNumber(
+    (financialData as Record<string, unknown>).revenueGrowth
+  );
   const revenueGrowth =
-    previousIncome && coerceNumber(previousIncome.totalRevenue) != null
-      ? growthRate(revenue, coerceNumber(previousIncome.totalRevenue) ?? 0)
+    rawRevenueGrowth != null
+      ? normalizePercentage(rawRevenueGrowth)
+      : previousIncome && coerceNumber(previousIncome.totalRevenue) != null
+      ? normalizePercentage(
+          growthRate(
+            revenue,
+            coerceNumber(previousIncome.totalRevenue) ?? 0
+          )
+        )
       : null;
   const netIncomeMargin = revenue ? netIncome / revenue : null;
   const operatingCashFlow =
@@ -372,12 +394,13 @@ export async function fetchFinancialMetrics(
     0;
   const totalShareholdersEquity =
     coerceNumber(latestBalance.totalStockholdersEquity);
-  const debtToEquity =
+  const rawYahooDte =
     coerceNumber(financialData.debtToEquity) ??
-    coerceNumber(defaultKeyStatistics.debtToEquity) ??
-    (totalShareholdersEquity
-      ? totalDebt / totalShareholdersEquity
-      : null);
+    coerceNumber(defaultKeyStatistics.debtToEquity);
+  const debtToEquity =
+    rawYahooDte != null
+      ? rawYahooDte / 100 // Yahoo returns this as a percentage (e.g., 30.27 for 30.27%), convert to pure ratio (0.30)
+      : (totalShareholdersEquity ? totalDebt / totalShareholdersEquity : null);
   const marketCap =
     coerceNumber(price.marketCap) ??
     coerceNumber(summaryDetail.marketCap) ??
@@ -429,6 +452,20 @@ export async function fetchFinancialMetrics(
   const enterpriseValue =
     coerceNumber(defaultKeyStatistics.enterpriseValue) ??
     null;
+  
+
+  // 👇 YAHAN PASTE KARO
+  console.log("=================================");
+  console.log(symbol);
+  console.log("Raw ROE:", financialData.returnOnEquity);
+  console.log("Raw ROA:", financialData.returnOnAssets);
+  console.log("Raw Net Margin:", financialData.profitMargins);
+  console.log("Raw Operating Margin:", financialData.operatingMargins);
+  console.log("Raw Gross Margin:", financialData.grossMargins);
+  console.log("Raw Debt/Equity:", financialData.debtToEquity);
+  console.log("=================================");
+
+
 
   const healthScore = scoreFinancialHealth(
     debtToEquity,
@@ -436,7 +473,7 @@ export async function fetchFinancialMetrics(
     totalDebt,
     operatingCashFlow
   );
-  const profitabilityScore = scoreProfitability(netIncomeMargin);
+  const profitabilityScore = scoreProfitability(netMargin);
   const growthScore = scoreGrowth(revenueGrowth);
 
   const debtLevel =
@@ -463,6 +500,7 @@ export async function fetchFinancialMetrics(
         : "Low or negative profitability";
 
   return {
+    currency,
     revenue,
     revenueGrowth,
     netIncome,
@@ -497,6 +535,7 @@ export async function fetchFinancialMetrics(
     },
   };
 }
+
 
 export async function resolveCompanySymbol(
   companyName: string

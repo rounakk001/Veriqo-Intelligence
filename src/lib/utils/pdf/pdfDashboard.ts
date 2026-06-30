@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import type { AnalysisResult } from "@/types/agent";
 import { PAGE, PDF_THEME, setSectionTitle } from "./pdfTheme";
 import { drawCard, formatNumber, formatCurrency, formatPercentage } from "./pdfHelpers";
+import { formatMoney } from "@/lib/utils/format";
 
 export function drawDashboard(doc: jsPDF, result: AnalysisResult) {
     let y = PAGE.marginY;
@@ -9,15 +10,16 @@ export function drawDashboard(doc: jsPDF, result: AnalysisResult) {
     setSectionTitle(doc, "KPI DASHBOARD", y);
     y += 15;
 
+    const cur = result.financials.currency;
     const kpis = [
-        { label: "Market Cap", value: result.financials.marketCap ? "$" + formatCurrency(result.financials.marketCap) : "N/A" },
-        { label: "Enterprise Value", value: result.financials.enterpriseValue ? "$" + formatCurrency(result.financials.enterpriseValue) : "N/A" },
-        { label: "Revenue", value: "$" + formatCurrency(result.financials.revenue) },
-        { label: "Net Income", value: "$" + formatCurrency(result.financials.netIncome) },
-        { label: "Operating Cash Flow", value: "$" + formatCurrency(result.financials.operatingCashFlow) },
-        { label: "Free Cash Flow", value: "$" + formatCurrency(result.financials.freeCashFlow) },
-        { label: "Total Debt", value: "$" + formatCurrency(result.financials.totalDebt) },
-        { label: "Cash & Equivalents", value: "$" + formatCurrency(result.financials.cashAndEquivalents) },
+        { label: "Market Cap", value: result.financials.marketCap ? formatMoney(result.financials.marketCap, cur) : "N/A" },
+        { label: "Enterprise Value", value: result.financials.enterpriseValue ? formatMoney(result.financials.enterpriseValue, cur) : "N/A" },
+        { label: "Revenue", value: formatMoney(result.financials.revenue, cur) },
+        { label: "Net Income", value: formatMoney(result.financials.netIncome, cur) },
+        { label: "Operating Cash Flow", value: formatMoney(result.financials.operatingCashFlow, cur) },
+        { label: "Free Cash Flow", value: formatMoney(result.financials.freeCashFlow, cur) },
+        { label: "Total Debt", value: formatMoney(result.financials.totalDebt, cur) },
+        { label: "Cash & Equivalents", value: formatMoney(result.financials.cashAndEquivalents, cur) },
         
         { label: "P/E Ratio", value: formatNumber(result.financials.peRatio) },
         { label: "PEG Ratio", value: formatNumber(result.financials.pegRatio) },
