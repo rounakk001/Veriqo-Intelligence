@@ -76,6 +76,23 @@ export function FinancialCard({ financials }: FinancialCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {financials.dataQuality !== "full" && (
+          <div className={`rounded-md border px-4 py-3 text-sm ${
+            financials.dataQuality === "insufficient"
+              ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+              : "border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950/40 dark:text-yellow-300"
+          }`}>
+            <span className="font-semibold">
+              {financials.dataQuality === "insufficient"
+                ? "⚠ Insufficient financial data"
+                : "⚠ Limited financial data available"}
+            </span>
+            {" — "}
+            {financials.dataQuality === "insufficient"
+              ? "Yahoo Finance does not provide enough financial data for this security. Analysis scores may not be reliable."
+              : "This company has a very small market cap. Available data may be incomplete or unreliable."}
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Metric label="Market Cap" value={formatMoney(financials.marketCap, cur)} />
           <Metric label="Enterprise Value" value={formatMoney(financials.enterpriseValue, cur)} />

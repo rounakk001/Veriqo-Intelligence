@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { History, Keyboard, Moon, Search, Sun, TrendingUp, X } from "lucide-react";
-import { SearchBar } from "@/components/SearchBar";
+import { CompanySearchBar } from "@/components/CompanySearchBar";
 
 import { ExecutiveSummaryCard } from "@/components/ExecutiveSummaryCard";
 import {
@@ -228,7 +228,7 @@ export default function HomePage() {
               Follow the market, research companies, and surface actionable insights from one refined workspace built for serious users.
             </p>
             <div className="mt-8 w-full flex flex-col items-center">
-              <SearchBar
+              <CompanySearchBar
                 value={company}
                 onChange={setCompany}
                 onAnalyze={handleAnalyze}

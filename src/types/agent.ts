@@ -15,6 +15,7 @@ export interface CompanyProfile {
 
 export interface FinancialMetrics {
   currency: string;          // ISO 4217 code from financialData.financialCurrency
+  dataQuality: "full" | "limited" | "insufficient"; // Data completeness signal
   revenue: number;
   revenueGrowth: number | null;
   netIncome: number;

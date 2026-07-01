@@ -1,5 +1,6 @@
 import YahooFinance from "yahoo-finance2";
 import type { CompanyProfile, FinancialMetrics } from "@/types/agent";
+import { exchangeRank, MIN_RELIABLE_MARKET_CAP, MIN_CRITICAL_FIELDS } from "@/lib/config/financialConstants";
 
 const yahooFinance = new YahooFinance();
 
@@ -499,8 +500,30 @@ export async function fetchFinancialMetrics(
         ? "Moderately profitable"
         : "Low or negative profitability";
 
+  // ── Data Quality Assessment ─────────────────────────────────────────
+  // Distinguish a financially weak company from one with insufficient data.
+  // A company is "insufficient" if it has too few critical fields OR a
+  // market cap so small that Yahoo data cannot be trusted.
+  // This is NOT company-specific logic — it is purely threshold-based.
+  const criticalPresent = [
+    revenue,
+    operatingCashFlow,
+    netMargin,
+    returnOnEquity,
+    grossMargin,
+    marketCap,
+  ].filter((v) => v != null && v !== 0).length;
+
+  const dataQuality: FinancialMetrics["dataQuality"] =
+    criticalPresent < MIN_CRITICAL_FIELDS
+      ? "insufficient"
+      : marketCap > 0 && marketCap < MIN_RELIABLE_MARKET_CAP
+      ? "limited"
+      : "full";
+
   return {
     currency,
+    dataQuality,
     revenue,
     revenueGrowth,
     netIncome,
@@ -549,22 +572,31 @@ export async function resolveCompanySymbol(
   }
 
   const normalized = companyName.trim().toLowerCase();
-  const cleanName = (name: string) => name.toLowerCase().replace(/\b(inc|corp|plc|ltd|co|corporation|company)\b\.?/gi, '').trim();
+  const cleanName = (name: string) =>
+    name.toLowerCase().replace(/\b(inc|corp|plc|ltd|co|corporation|company)\b\.?/gi, "").trim();
   const normalizedClean = cleanName(companyName);
 
-  const exactSymbol = results.find(
-    (r) => r.symbol.toLowerCase() === normalized
-  );
-  if (exactSymbol) return exactSymbol;
+  // ── Exchange-ranked sort ─────────────────────────────────────────────
+  // Sort ALL candidates by exchange liquidity rank so that major-exchange
+  // listings are always preferred over OTC / pink sheet matches.
+  // No company or country is hardcoded here — ranking is purely by exchange tier.
+  const ranked = [...results].sort((a, b) => exchangeRank(a.exchange) - exchangeRank(b.exchange));
 
-  const exactName = results.find(
+  // Exact ticker match: only accept it if the result is from a reputable exchange.
+  // If the query is a common word that happens to equal an OTC ticker, the
+  // exchange-rank sort naturally pushes the OTC result to the back.
+  const exactSymbol = ranked.find((r) => r.symbol.toLowerCase() === normalized);
+
+  // Exact company-name match (after stripping legal suffixes).
+  const exactName = ranked.find(
     (r) => cleanName(r.name) === normalizedClean
   );
-  if (exactName) return exactName;
 
-  const startsWith = results.find((r) =>
+  // Company name starts-with match.
+  const startsWith = ranked.find((r) =>
     cleanName(r.name).startsWith(normalizedClean)
   );
 
-  return startsWith || results[0];
+  // Final fallback: highest-ranked exchange result.
+  return exactSymbol ?? exactName ?? startsWith ?? ranked[0];
 }
