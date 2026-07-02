@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useId } from "react";
 import LogoutButton from "@/components/LogoutButton";
+import { useAuthGate } from "@/lib/context/AuthGateContext";
 import {
     Area,
     AreaChart,
@@ -352,10 +353,12 @@ export function MarketDashboard() {
         }
     };
 
+    const { isAuthenticated } = useAuthGate();
+
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadDashboard();
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated]);
 
     const summary = useMemo(() => {
         if (!data) return null;

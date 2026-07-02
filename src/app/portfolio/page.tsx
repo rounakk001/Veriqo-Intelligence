@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { PortfolioSummary } from "@/types/portfolio";
 import { UserNav } from "@/components/UserNav";
+import { useAuthGate } from "@/lib/context/AuthGateContext";
 
 export default function PortfolioPage() {
     const router = useRouter();
@@ -21,23 +22,24 @@ export default function PortfolioPage() {
     const [isSaving, setIsSaving] = useState(false);
     const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const { isAuthenticated, isLoadingSession } = useAuthGate();
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 
+    useEffect(() => {
+        if (!isLoadingSession && !isAuthenticated) {
+            router.push("/login");
+        }
+    }, [isAuthenticated, isLoadingSession, router]);
+
     async function loadPortfolio() {
+        if (!isAuthenticated) return;
         setIsLoading(true);
         setError(null);
         try {
-            const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
-            const mePayload = await meResponse.json();
-            if (!mePayload.user) {
-                router.push("/login");
-                return;
-            }
-
             const response = await fetch("/api/portfolio", { cache: "no-store" });
             const payload = await response.json();
             if (!response.ok) throw new Error(payload.error || "Unable to load portfolio.");
@@ -49,12 +51,13 @@ export default function PortfolioPage() {
             setIsLoading(false);
         }
     }
-
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        loadPortfolio();
+        if (isAuthenticated) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            loadPortfolio();
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [isAuthenticated]);
 
     async function handleAdd(event: FormEvent) {
         event.preventDefault();
