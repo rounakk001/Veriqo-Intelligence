@@ -1,13 +1,17 @@
 import YahooFinance from "yahoo-finance2";
-import { getCurrentUser } from "@/lib/services/authService";
-import { getPortfolio, savePortfolio } from "@/lib/services/userStore";
-import type { LiveHolding, PortfolioSummary, UserPortfolio } from "@/types/portfolio";
+import { getCurrentUser } from "@/lib/services/serverAuth";
+import type { LiveHolding, PortfolioHolding, PortfolioSummary, UserPortfolio } from "@/types/portfolio";
+import { cookies } from "next/headers";
 
+// ── Yahoo Finance instance (unchanged) ────────────────────────────────────────
 const yahooFinance = new YahooFinance({
     suppressNotices: ["yahooSurvey"],
     validation: { logErrors: false },
 });
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000/api/v1";
+
+// ── Formatting helpers (unchanged) ────────────────────────────────────────────
 function formatCurrency(value: number | null | undefined) {
     if (typeof value !== "number" || !Number.isFinite(value)) return "—";
     return new Intl.NumberFormat("en-US", {
@@ -23,6 +27,7 @@ function formatPercent(value: number | null | undefined) {
     return `${sign}${value.toFixed(2)}%`;
 }
 
+// ── Yahoo Finance live quote (unchanged) ──────────────────────────────────────
 async function fetchLiveQuote(symbol: string) {
     const startedAt = Date.now();
 
@@ -79,28 +84,29 @@ async function fetchLiveQuote(symbol: string) {
     }
 }
 
+// ── Build live holdings (unchanged) ──────────────────────────────────────────
 async function buildLiveHoldings(portfolio: UserPortfolio): Promise<LiveHolding[]> {
     const quotes = await Promise.all(portfolio.holdings.map((holding) => fetchLiveQuote(holding.symbol)));
 
     return portfolio.holdings.map((holding, index) => {
         const quote = quotes[index];
         const value = quote.price !== null ? quote.price * holding.shares : null;
-    
+
         return {
             symbol: holding.symbol,
-    
+
             name: quote.name,
-    
+
             sector: quote.sector,
-    
+
             price: quote.price,
-    
+
             changePercent: quote.changePercent,
-    
+
             shares: holding.shares,
-    
+
             value,
-    
+
             note:
                 quote.price !== null
                     ? `Price ${formatCurrency(quote.price)} • ${formatPercent(quote.changePercent)}`
@@ -109,6 +115,7 @@ async function buildLiveHoldings(portfolio: UserPortfolio): Promise<LiveHolding[
     });
 }
 
+// ── Build stats (unchanged) ───────────────────────────────────────────────────
 function buildStats(holdings: LiveHolding[], riskLabel: string) {
     const validHoldings = holdings.filter((holding) => holding.value !== null && holding.price !== null);
     const totalValue = validHoldings.reduce((sum, holding) => sum + (holding.value ?? 0), 0);
@@ -140,11 +147,78 @@ function buildStats(holdings: LiveHolding[], riskLabel: string) {
     };
 }
 
+// ── Express API helpers ───────────────────────────────────────────────────────
+
+/**
+ * Builds the Cookie header string from Next.js cookie store for server-side
+ * fetch calls to the Express backend.
+ */
+async function getAuthCookieHeader(): Promise<string> {
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("accessToken")?.value;
+    return accessToken ? `accessToken=${accessToken}` : "";
+}
+
+/**
+ * Raw Express portfolio holding shape returned from MongoDB.
+ */
+interface ExpressHolding {
+    _id: string;
+    symbol: string;
+    shares: number;
+    purchaseDate?: string;
+    updatedAt?: string;
+}
+
+/**
+ * Fetches the raw portfolio from the Express backend and maps it to the
+ * internal UserPortfolio shape used by buildLiveHoldings / buildStats.
+ *
+ * featuredSymbol is not stored by Express; we default to the first holding.
+ */
+async function fetchExpressPortfolio(cookieHeader: string): Promise<UserPortfolio> {
+    const response = await fetch(`${BACKEND_URL}/portfolio`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Cookie: cookieHeader,
+        },
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        // Return an empty portfolio on error rather than crashing.
+        return { userId: "", featuredSymbol: null, holdings: [], updatedAt: new Date().toISOString() };
+    }
+
+    const json = await response.json();
+    // Express wraps in ApiResponse: { statusCode, data: { holdings: [...] }, message }
+    const raw = json.data ?? json;
+    const expressHoldings: ExpressHolding[] = Array.isArray(raw.holdings) ? raw.holdings : [];
+
+    const holdings: PortfolioHolding[] = expressHoldings.map((h) => ({
+        symbol: h.symbol,
+        shares: h.shares,
+        addedAt: h.purchaseDate ?? h.updatedAt ?? new Date().toISOString(),
+        // Preserve the MongoDB _id so we can use it for PATCH / DELETE
+        _id: h._id,
+    } as PortfolioHolding & { _id: string }));
+
+    return {
+        userId: raw.userId ?? "",
+        featuredSymbol: raw.featuredSymbol ?? holdings[0]?.symbol ?? null,
+        holdings,
+        updatedAt: raw.updatedAt ?? new Date().toISOString(),
+    };
+}
+
+// ── Public API (signatures unchanged) ─────────────────────────────────────────
+
 export async function getPortfolioSummary(riskLabel = "Risk-aware"): Promise<PortfolioSummary> {
     const user = await getCurrentUser();
     if (!user) {
         return {
-            authenticated: false,   
+            authenticated: false,
             user: null,
             featuredSymbol: null,
             featured: null,
@@ -160,7 +234,8 @@ export async function getPortfolioSummary(riskLabel = "Risk-aware"): Promise<Por
         };
     }
 
-    const portfolio = await getPortfolio(user.id);
+    const cookieHeader = await getAuthCookieHeader();
+    const portfolio = await fetchExpressPortfolio(cookieHeader);
     const holdings = await buildLiveHoldings(portfolio);
     const featuredSymbol = portfolio.featuredSymbol ?? holdings[0]?.symbol ?? null;
     const featuredHolding = featuredSymbol ? holdings.find((holding) => holding.symbol === featuredSymbol) : null;
@@ -171,11 +246,11 @@ export async function getPortfolioSummary(riskLabel = "Risk-aware"): Promise<Por
         featuredSymbol,
         featured: featuredHolding
             ? {
-                  symbol: featuredHolding.symbol,
-                  name: featuredHolding.name,
-                  price: formatCurrency(featuredHolding.price),
-                  change: formatPercent(featuredHolding.changePercent),
-              }
+                symbol: featuredHolding.symbol,
+                name: featuredHolding.name,
+                price: formatCurrency(featuredHolding.price),
+                change: formatPercent(featuredHolding.changePercent),
+            }
             : null,
         holdings,
         stats: buildStats(holdings, riskLabel),
@@ -189,28 +264,26 @@ export async function addPortfolioHolding(symbol: string, shares: number) {
     const normalizedSymbol = symbol.trim().toUpperCase();
     if (!normalizedSymbol) throw new Error("Symbol is required.");
 
+    // Validate the symbol exists on Yahoo Finance before sending to Express.
     const quote = await fetchLiveQuote(normalizedSymbol);
     if (quote.price === null) throw new Error(`Could not find live quote for ${normalizedSymbol}.`);
 
-    const portfolio = await getPortfolio(user.id);
-    const existing = portfolio.holdings.find((holding) => holding.symbol === normalizedSymbol);
+    const cookieHeader = await getAuthCookieHeader();
 
-    if (existing) {
-        existing.shares += shares;
-    } else {
-        portfolio.holdings.push({
-            symbol: normalizedSymbol,
-            shares,
-            addedAt: new Date().toISOString(),
-        });
+    const response = await fetch(`${BACKEND_URL}/portfolio`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Cookie: cookieHeader,
+        },
+        body: JSON.stringify({ symbol: normalizedSymbol, shares }),
+    });
+
+    if (!response.ok) {
+        const errorJson = await response.json().catch(() => ({}));
+        throw new Error(errorJson.message ?? "Unable to add holding.");
     }
 
-    if (!portfolio.featuredSymbol) {
-        portfolio.featuredSymbol = normalizedSymbol;
-    }
-
-    portfolio.updatedAt = new Date().toISOString();
-    await savePortfolio(portfolio);
     return getPortfolioSummary();
 }
 
@@ -218,13 +291,31 @@ export async function removePortfolioHolding(symbol: string) {
     const user = await getCurrentUser();
     if (!user) throw new Error("Authentication required.");
 
-    const portfolio = await getPortfolio(user.id);
-    portfolio.holdings = portfolio.holdings.filter((holding) => holding.symbol !== symbol.toUpperCase());
-    if (portfolio.featuredSymbol === symbol.toUpperCase()) {
-        portfolio.featuredSymbol = portfolio.holdings[0]?.symbol ?? null;
+    const cookieHeader = await getAuthCookieHeader();
+
+    // First fetch the portfolio to find the MongoDB _id of the holding.
+    const portfolio = await fetchExpressPortfolio(cookieHeader);
+    const holdingWithId = (portfolio.holdings as Array<PortfolioHolding & { _id?: string }>).find(
+        (h) => h.symbol === symbol.toUpperCase()
+    );
+
+    if (!holdingWithId?._id) {
+        throw new Error(`Holding ${symbol} not found in portfolio.`);
     }
-    portfolio.updatedAt = new Date().toISOString();
-    await savePortfolio(portfolio);
+
+    const response = await fetch(`${BACKEND_URL}/portfolio/${holdingWithId._id}`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            Cookie: cookieHeader,
+        },
+    });
+
+    if (!response.ok) {
+        const errorJson = await response.json().catch(() => ({}));
+        throw new Error(errorJson.message ?? "Unable to remove holding.");
+    }
+
     return getPortfolioSummary();
 }
 
@@ -232,14 +323,29 @@ export async function setFeaturedSymbol(symbol: string) {
     const user = await getCurrentUser();
     if (!user) throw new Error("Authentication required.");
 
+    const cookieHeader = await getAuthCookieHeader();
+    const portfolio = await fetchExpressPortfolio(cookieHeader);
+
     const normalizedSymbol = symbol.trim().toUpperCase();
-    const portfolio = await getPortfolio(user.id);
-    const exists = portfolio.holdings.some((holding) => holding.symbol === normalizedSymbol);
+    const exists = portfolio.holdings.some((h) => h.symbol === normalizedSymbol);
     if (!exists) throw new Error("Add the symbol to your portfolio before setting it as your choice.");
 
-    portfolio.featuredSymbol = normalizedSymbol;
-    portfolio.updatedAt = new Date().toISOString();
-    await savePortfolio(portfolio);
-    return getPortfolioSummary();
-}
+    // Express has no featuredSymbol field. We store the preference in memory
+    // for this request cycle and reflect it in the summary response.
+    // The UI's "My Choice" state is managed client-side in portfolio/page.tsx.
+    // A future migration can persist this via a PATCH endpoint.
+    const summaryWithFeature = await getPortfolioSummary();
+    summaryWithFeature.featuredSymbol = normalizedSymbol;
+    summaryWithFeature.featured = (() => {
+        const h = summaryWithFeature.holdings.find((h) => h.symbol === normalizedSymbol);
+        if (!h) return null;
+        return {
+            symbol: h.symbol,
+            name: h.name,
+            price: formatCurrency(h.price),
+            change: formatPercent(h.changePercent),
+        };
+    })();
 
+    return summaryWithFeature;
+}

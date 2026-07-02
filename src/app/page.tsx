@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTheme } from "next-themes";
-import { History, Keyboard, Moon, Search, Sun, TrendingUp, X } from "lucide-react";
+import { History, Keyboard, Search, TrendingUp, X } from "lucide-react";
 import { CompanySearchBar } from "@/components/CompanySearchBar";
+import { searchHistoryService } from "@/lib/services/searchHistory.service";
+import { useAuthGate } from "@/lib/context/AuthGateContext";
 
 import { ExecutiveSummaryCard } from "@/components/ExecutiveSummaryCard";
-import {
-  LoadingState,
-  simulateLoadingSteps,
-} from "@/components/LoadingState";
+import { LoadingState, simulateLoadingSteps } from "@/components/LoadingState";
 import { OverviewCard } from "@/components/OverviewCard";
 import { FinancialCard } from "@/components/FinancialCard";
+import { UserNav } from "@/components/UserNav";
 import { NewsCard } from "@/components/NewsCard";
 import { RiskCard } from "@/components/RiskCard";
 import { ScoreCard } from "@/components/ScoreCard";
@@ -20,6 +19,7 @@ import { VerdictCard } from "@/components/VerdictCard";
 import { CommitteeCard } from "@/components/CommitteeCard";
 import { ExplainabilitySection } from "@/components/ExplainabilitySection";
 import { MarketDashboard } from "@/components/MarketDashboard";
+import { LandingHero, LandingFeatures, LandingWorkflow, LandingTrust, Footer } from "@/components/LandingPageSections";
 import { Button } from "@/components/ui/button";
 import type { AnalysisResult, LoadingStepId } from "@/types/agent";
 import { CompetitorComparisonCard } from "@/components/CompetitorComparisonCard";
@@ -29,14 +29,13 @@ import { Download } from "lucide-react";
 
 
 const HISTORY_KEY = "investment-research-history";
+const ANALYSIS_SNAPSHOT_KEY = "veriqo-analysis-snapshot";
 
 export default function HomePage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, setIsAuthenticated, requireAuth } = useAuthGate();
 
   const [company, setCompany] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -48,34 +47,37 @@ export default function HomePage() {
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(HISTORY_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (stored) setHistory(JSON.parse(stored));
-    } catch (error) {
-      console.error(error);
-    }
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-  useEffect(() => {
-    const checkAuth = async () => {
+    const syncHistory = async () => {
+      if (!isAuthenticated) return;
+      
+      let localHistory: string[] = [];
       try {
-        const response = await fetch("/api/auth/me", {
-          cache: "no-store",
-        });
+        const stored = localStorage.getItem(HISTORY_KEY);
+        if (stored) localHistory = JSON.parse(stored);
+      } catch (err) {
+        console.error(err);
+      }
 
-        setIsAuthenticated(response.ok);
-      } catch {
-        setIsAuthenticated(false);
+      if (localHistory.length > 0) {
+        // Merge local history to backend silently
+        // Reverse so oldest is saved first, preserving chronological order
+        for (const item of [...localHistory].reverse()) {
+           await searchHistoryService.saveSearch(item);
+        }
+        localStorage.removeItem(HISTORY_KEY);
+      }
+      
+      // Load the merged history
+      try {
+        const h = await searchHistoryService.fetchHistory();
+        setHistory(h);
+      } catch (err) {
+        console.error(err);
       }
     };
 
-    checkAuth();
-  }, []);
+    syncHistory();
+  }, [isAuthenticated]);
 
 
   useEffect(() => {
@@ -96,11 +98,18 @@ export default function HomePage() {
 
   const saveToHistory = useCallback((name: string) => {
     setHistory((prev) => {
-      const updated = [name, ...prev.filter((h) => h.toLowerCase() !== name.toLowerCase())].slice(0, 8);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      const updated = [name, ...prev.filter((h) => h.toLowerCase() !== name.toLowerCase())].slice(0, 10);
+      
+      if (isAuthenticated) {
+        // Fire and forget: never block the UI or analysis
+        searchHistoryService.saveSearch(name);
+      } else {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      }
+      
       return updated;
     });
-  }, []);
+  }, [isAuthenticated]);
 
   const handleAnalyze = useCallback(async (queryOverride?: string) => {
     const query = (queryOverride ?? company).trim();
@@ -163,8 +172,52 @@ export default function HomePage() {
     handleAnalyze(query);
   }, [commandQuery, handleAnalyze]);
 
-  function downloadAnalysisReport(result: AnalysisResult): void {
-    downloadInvestmentReport(result);
+  // Restore analysis snapshot after login redirect.
+  // We watch `isAuthenticated` because after login the user navigates back
+  // to this page — at that point pendingAction is already null (context was
+  // reset during navigation), but sessionStorage still holds the snapshot.
+  useEffect(() => {
+    if (!isAuthenticated) return;          // only attempt when logged in
+    const raw = sessionStorage.getItem(ANALYSIS_SNAPSHOT_KEY);
+    if (!raw) return;
+    try {
+      const snapshot: { company: string; result: AnalysisResult } = JSON.parse(raw);
+      sessionStorage.removeItem(ANALYSIS_SNAPSHOT_KEY);   // consume once
+      setCompany(snapshot.company);
+      setResult(snapshot.result);
+      // Auto-trigger the download after state has been restored
+      setTimeout(() => {
+        downloadInvestmentReport(snapshot.result);
+      }, 400);
+    } catch {
+      sessionStorage.removeItem(ANALYSIS_SNAPSHOT_KEY);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
+  function downloadAnalysisReport(res: AnalysisResult): void {
+    if (!isAuthenticated) {
+      // 1. Save snapshot BEFORE navigating away — this survives the redirect
+      try {
+        sessionStorage.setItem(ANALYSIS_SNAPSHOT_KEY, JSON.stringify({ company, result: res }));
+      } catch { /* ignore quota errors */ }
+      // 2. Store redirect target so login returns here, not to "/"
+      requireAuth({ type: "download_report" });
+    } else {
+      downloadInvestmentReport(res);
+    }
+  }
+
+  function scrollToSearch() {
+    const section = document.getElementById("search-bar");
+    section?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => {
+      document.getElementById("company-search-input")?.focus();
+    }, 600);
+  }
+
+  function scrollToDashboard() {
+    document.getElementById("market-dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
@@ -173,26 +226,9 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
             <TrendingUp className="h-4 w-4 text-emerald-600" />
-            Veriqo Intelligence
+            VERIQO
           </div>
           <div className="flex items-center gap-2">
-            {isAuthenticated ? (
-              <>
-                <Link href="/portfolio">
-                  <Button variant="outline" size="sm">
-                    Portfolio
-                  </Button>
-                </Link>
-
-
-              </>
-            ) : (
-              <Link href="/login">
-                <Button variant="outline" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-            )}
             <Button
               variant="outline"
               size="sm"
@@ -202,32 +238,19 @@ export default function HomePage() {
               <Keyboard className="mr-2 h-4 w-4" />
               Quick Search
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              aria-label="Toggle color theme"
-            >
-              {mounted && resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
+            <UserNav />
           </div>
         </div>
       </header>
 
-      <section className="border-b border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:py-20">
+      {(!result && !isLoading && !error) && (
+        <LandingHero onStartResearch={scrollToSearch} onExploreDashboard={scrollToDashboard} />
+      )}
+
+      <section id="search-bar" className={`border-b border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 transition-all ${result || isLoading ? "sticky top-[60px] z-20 py-4 shadow-sm" : "py-16"}`}>
+        <div className="mx-auto max-w-7xl px-4">
           <div className="flex flex-col items-center text-center">
-            <div className="mb-4 flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-1.5 text-sm font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-              <TrendingUp className="h-4 w-4" />
-              Premium AI Market Intelligence
-            </div>
-            <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl dark:text-zinc-50">
-              A daily operating system for modern investors.
-            </h1>
-            <p className="mt-4 max-w-3xl text-lg text-zinc-600 dark:text-zinc-400">
-              Follow the market, research companies, and surface actionable insights from one refined workspace built for serious users.
-            </p>
-            <div className="mt-8 w-full flex flex-col items-center">
+            <div className="w-full flex flex-col items-center">
               <CompanySearchBar
                 value={company}
                 onChange={setCompany}
@@ -386,19 +409,26 @@ export default function HomePage() {
           
         )}
 
-        {!isLoading && !result && !error && (
-          <div className="space-y-8">
-            <MarketDashboard />
-            <div className="rounded-2xl border border-zinc-200 bg-white/80 p-6 text-center text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-400">
-              Enter a company name above to unlock the deeper AI company analysis experience.
-            </div>
-          </div>
-        )}
       </div>
 
-      <footer className="border-t border-zinc-200 py-6 text-center text-xs text-zinc-400 dark:border-zinc-800">
-        Market Intelligence Platform · For informational purposes only · Not financial advice
-      </footer>
+      {/* Market Dashboard — accessible via "Explore Dashboard" CTA */}
+      {(!result && !isLoading && !error) && (
+        <section id="market-dashboard" className="border-t border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-900/30">
+          <div className="mx-auto max-w-7xl px-4 py-10">
+            <MarketDashboard />
+          </div>
+        </section>
+      )}
+
+      {(!result && !isLoading && !error) && (
+        <>
+          <LandingFeatures />
+          <LandingWorkflow />
+          <LandingTrust onStartResearch={scrollToSearch} />
+        </>
+      )}
+
+      <Footer />
     </main>
   );
 }

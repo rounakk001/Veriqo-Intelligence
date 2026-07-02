@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import type { AnalysisResult } from "@/types/agent";
 import { CommitteeModal } from "./CommitteeModal";
+import { useAuthGate } from "@/lib/context/AuthGateContext";
 
 interface CommitteeCardProps {
   result: AnalysisResult;
@@ -13,6 +14,12 @@ interface CommitteeCardProps {
 
 export function CommitteeCard({ result }: CommitteeCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { requireAuth } = useAuthGate();
+
+  function handleOpen() {
+    const allowed = requireAuth({ type: "committee" });
+    if (allowed) setIsOpen(true);
+  }
 
   return (
     <>
@@ -28,7 +35,7 @@ export function CommitteeCard({ result }: CommitteeCardProps) {
           <p className="text-zinc-500 mb-6 text-sm">
             Three independent AI analysts (Bull, Bear, and Moderator) evaluate the investment from all angles before reaching a balanced, definitive conclusion.
           </p>
-          <Button onClick={() => setIsOpen(true)} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button onClick={handleOpen} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white">
             Open Committee
           </Button>
         </CardContent>

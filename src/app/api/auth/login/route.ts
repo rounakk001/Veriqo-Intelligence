@@ -1,23 +1,19 @@
+/**
+ * This Next.js route is intentionally a no-op stub.
+ *
+ * Login is handled directly by the client-side `auth.service.ts`, which
+ * calls the Express backend at POST /api/v1/auth/login using axios
+ * (withCredentials: true). The Express server sets the HttpOnly
+ * accessToken and refreshToken cookies on the response.
+ *
+ * This file is kept to satisfy Next.js routing but should not be called
+ * by any component. If it is called, it returns 405 Method Not Allowed.
+ */
 import { NextResponse } from "next/server";
-import { loginUser } from "@/lib/services/authService";
 
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const email = typeof body.email === "string" ? body.email.trim() : "";
-        const password = typeof body.password === "string" ? body.password : "";
-
-        if (!email || !password) {
-            return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
-        }
-
-        const user = await loginUser(email, password);
-        return NextResponse.json({ user });
-    } catch (error) {
-        console.error(error);
-        return NextResponse.json(
-            { error: error instanceof Error ? error.message : "Login failed." },
-            { status: 401 }
-        );
-    }
+export async function POST() {
+    return NextResponse.json(
+        { error: "Use the Express auth API directly via auth.service.ts." },
+        { status: 405 }
+    );
 }

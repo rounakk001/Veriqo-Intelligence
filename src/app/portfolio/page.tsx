@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { PortfolioSummary } from "@/types/portfolio";
+import { UserNav } from "@/components/UserNav";
 
 export default function PortfolioPage() {
     const router = useRouter();
@@ -122,11 +123,6 @@ export default function PortfolioPage() {
         }
     }
 
-    async function handleLogout() {
-        await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/login");
-        router.refresh();
-    }
 
     if (isLoading) {
         return <div className="mx-auto max-w-4xl px-4 py-16 text-sm text-zinc-500">Loading portfolio...</div>;
@@ -138,23 +134,13 @@ export default function PortfolioPage() {
                 <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
                     <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-200">
                         <TrendingUp className="h-4 w-4 text-emerald-600" />
-                        Veriqo Intelligence
+                    VERIQO
                     </Link>
                     <div className="flex items-center gap-3">
                         <Link href="/" className="text-sm text-zinc-500 hover:text-emerald-600 dark:text-zinc-400">
                             Dashboard
                         </Link>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-                            aria-label="Toggle color theme"
-                        >
-                            {mounted && resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleLogout}>
-                            Sign out
-                        </Button>
+                        <UserNav />
                     </div>
                 </div>
             </header>
